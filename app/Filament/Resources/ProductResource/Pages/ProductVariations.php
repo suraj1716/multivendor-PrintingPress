@@ -39,12 +39,10 @@ class ProductVariations extends EditRecord
                                         ->preload()
                                         ->required()
                                         ->default(function ($record) use ($type) {
-                                            // Assuming $record->variation_type_option_ids contains the option ID
-                                            $selectedOption = json_decode($record->variation_type_option_ids, true); // Decode as an array
-
-
-                                            // Check if there is a selected option, and return the first option ID
-                                            return $selectedOption ? $selectedOption[0] : null; // Return the ID of the selected option
+                                            $selectedOptionIds = json_decode($record->variation_type_option_ids, true);
+                                            return is_array($selectedOptionIds)
+                                                ? collect($selectedOptionIds)->firstWhere(fn($id) => $type->options->pluck('id')->contains($id))
+                                                : null;
                                         });
                                 }
                                 return $fields;
@@ -74,18 +72,28 @@ class ProductVariations extends EditRecord
     protected function mutateFormDataBeforeFill(array $data): array
 {
 
-    // Fetch all variations for the specific product
-    $variations = $this->record->variations()->where('product_id', $this->record->id)->get()->toArray();
 
-    // Ensure that the variation_type_option_ids is an array and map the data correctly for each field
-    foreach ($variations as &$variation) {
-        $variation['variation_type_option_ids'] = json_decode($variation['variation_type_option_ids'], true); // Decode as an array
+    $variations = $this->record->variations()->where('product_id', $this->record->id)->get();
+
+    $transformed = [];
+
+    foreach ($variations as $variation) {
+        $entry = $variation->toArray();
+
+        $optionIds = $variation->variation_type_option_ids;  // Directly use array
+
+        foreach ($this->record->variationTypes as $type) {
+            $matchingOption = $type->options->whereIn('id', $optionIds)->first();
+            if ($matchingOption) {
+                $entry['variation_type_' . $type->id] = $matchingOption->id;
+            }
+        }
+
+        $transformed[] = $entry;
     }
-    // dd($variations);
 
-    // Map the variations to the form data
-    $data['variations'] = $variations;
-    // dd($data);
+    $data['variations'] = $transformed;
+
     return $data;
 }
 
@@ -162,33 +170,33 @@ class ProductVariations extends EditRecord
 
 
     protected function mutateFormDataBeforeSave(array $data): array
-{
-    $formattedData = [];
+    {
+        $formattedData = [];
 
-    foreach ($data['variations'] ?? [] as $option) {
-        $variationTypeOptionIds = [];
+        foreach ($data['variations'] ?? [] as $option) {
+            $variationTypeOptionIds = [];
 
-        // Collect the selected option IDs as integers
-        foreach ($this->record->variationTypes as $variationType) {
-            $variationTypeKey = 'variation_type_' . $variationType->id;
-            if (!empty($option[$variationTypeKey])) {
-                $variationTypeOptionIds[] = (int) $option[$variationTypeKey]; // Ensure it's an integer
+            // Collect the selected option IDs as integers
+            foreach ($this->record->variationTypes as $variationType) {
+                $variationTypeKey = 'variation_type_' . $variationType->id;
+                if (!empty($option[$variationTypeKey])) {
+                    $variationTypeOptionIds[] = (int) $option[$variationTypeKey]; // Ensure it's an integer
+                }
             }
+
+            // Format the data for storage (directly store array)
+            $formattedData[] = [
+                'id' => $option['id'] ?? null,
+                'variation_type_option_ids' => $variationTypeOptionIds, // Directly store the array
+                'quantity' => !empty($option['quantity']) ? $option['quantity'] : $this->record->quantity,
+                'price' => !empty($option['price']) ? $option['price'] : $this->record->price,
+            ];
         }
 
-        // Format the data for storage (JSON encoding the array of integers)
-        $formattedData[] = [
-            'id' => $option['id'] ?? null,
-            'variation_type_option_ids' => json_encode($variationTypeOptionIds), // Encode array as JSON
-            'quantity' => !empty($option['quantity']) ? $option['quantity'] : $this->record->quantity,
-            'price' => !empty($option['price']) ? $option['price'] : $this->record->price,
-        ];
+        $data['variations'] = $formattedData;
+
+        return $data;
     }
-
-    $data['variations'] = $formattedData;
-
-    return $data;
-}
 
 
 
@@ -215,38 +223,37 @@ class ProductVariations extends EditRecord
     // }
 
     protected function handleRecordUpdate(Model $record, array $data): Model
-    {
-        $variations = $data['variations'];
-        unset($data['variations']);  // Remove variations from the main data array
+{
+    $variations = $data['variations'];
+    unset($data['variations']);  // Remove variations from the main data array
 
-        // Prepare variations for upsert
-        $variations = collect($variations)->map(function ($variation) {
-            return [
-                'id' => $variation['id'] ?? null,
-                'variation_type_option_ids' => json_encode($variation['variation_type_option_ids']), // Ensure JSON encoding
-                'quantity' => $variation['quantity'],
-                'price' => $variation['price'],
-            ];
-        })->toArray();
+    // Prepare variations for upsert
+    $variations = collect($variations)->map(function ($variation) {
+        return [
+            'id' => $variation['id'] ?? null,
+            'variation_type_option_ids' => json_encode($variation['variation_type_option_ids']), // <- fix
+            'quantity' => $variation['quantity'],
+            'price' => $variation['price'],
+        ];
+    })->toArray();
 
-        // Get the IDs of the existing variations in the database
-        $existingVariationIds = $record->variations()->pluck('id')->toArray();
+    // Get the IDs of the existing variations in the database
+    $existingVariationIds = $record->variations()->pluck('id')->toArray();
 
-        // Get the IDs of the variations being submitted
-        $submittedVariationIds = collect($variations)->pluck('id')->filter()->toArray();
+    // Get the IDs of the variations being submitted
+    $submittedVariationIds = collect($variations)->pluck('id')->filter()->toArray();
 
-        // Find the variations that need to be deleted (those that are in the database but not submitted)
-        $variationsToDelete = array_diff($existingVariationIds, $submittedVariationIds);
+    // Find the variations that need to be deleted (those that are in the database but not submitted)
+    $variationsToDelete = array_diff($existingVariationIds, $submittedVariationIds);
 
-        // Delete the variations that are no longer part of the form
-        $record->variations()->whereIn('id', $variationsToDelete)->delete();
+    // Delete the variations that are no longer part of the form
+    $record->variations()->whereIn('id', $variationsToDelete)->delete();
 
-        // Perform upsert for variations (insert or update)
-        $record->variations()->upsert($variations, ['id'], ['variation_type_option_ids', 'quantity', 'price']);
+    // Perform upsert for variations (insert or update)
+    $record->variations()->upsert($variations, ['id'], ['variation_type_option_ids', 'quantity', 'price']);
 
-        return parent::handleRecordUpdate($record, $data);
-    }
-
+    return parent::handleRecordUpdate($record, $data);
+}
 
 
 

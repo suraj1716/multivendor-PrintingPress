@@ -7,6 +7,71 @@ export interface User {
     email_verified_at?: string;
 }
 
+
+
+export type VariationTypeOption = {
+id: number;
+    name: string;
+    images: Image[];
+    type:VariationType
+}
+export type VariationType = {
+    id: number;
+    name: string;
+    type:'Select' | 'Radio' | 'Image';
+    options: VariationTypeOption[]
+}
+
+export type Product = {
+    id: number;
+    title: string;
+    slug: string;
+    price: number;
+    image: string;
+    images: Image[];
+    description: string;
+    short_description: string;
+    created_at: string;
+    updated_at: string;
+    deleted_at?: string;
+    category_id: number;
+    category: {
+        id: number;
+        name: string;
+        created_at: string;
+    }
+    quantity: number;
+    user : {
+        id: number;
+        name: string;
+    }
+    department: {
+        id: number;
+        name: string;
+    },
+
+    variationTypes:VariationType[],
+    variations:Array<{
+        id: number;
+        variation_type_option_ids: number[];
+        quantity: number;
+        price: number;
+    }>
+  }
+
+
+
+  export type Image={
+    id: number;
+   thumb: string;
+    small: string;
+    large: string;
+  }
+
+export type PaginationProps<T>={
+  data:Array<T>;
+}
+
 export type PageProps<
     T extends Record<string, unknown> = Record<string, unknown>,
 > = T & {

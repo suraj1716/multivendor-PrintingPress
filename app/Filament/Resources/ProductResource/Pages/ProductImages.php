@@ -29,8 +29,7 @@ public function form(Form $form): Form
                 ->appendFiles()
                 ->preserveFilenames()
                 ->columnSpan(2)
-
-                ->default($this->record->getMedia('images')->pluck('id')->toArray()) ,
+                // ->default($this->record->getMedia('images')->pluck('id')->toArray()) ,
         ]);
 }
 

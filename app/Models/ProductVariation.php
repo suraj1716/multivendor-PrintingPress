@@ -1,12 +1,57 @@
 <?php
 
-namespace App\Models;
 
+
+namespace App\Models;
+use Illuminate\Support\Collection;
+use App\Models\VariationTypeOption;
 use Illuminate\Database\Eloquent\Model;
+use Livewire\Attributes\Modelable;
 
 class ProductVariation extends Model
 {
-    protected $casts=[
-        'variation_type_option_ids'=>'json',
+    protected $table = 'product_variations';
+
+    // Cast the 'variation_type_option_ids' attribute to an array
+    protected $casts = [
+        'variation_type_option_ids' => 'array',
     ];
+
+     public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// namespace App\Models;
+
+// use Illuminate\Database\Eloquent\Model;
+
+// class ProductVariation extends Model
+// {
+//     protected $casts=[
+//         'variation_type_option_ids'=>'json',
+//     ];
+
+
+
+// }
+
+
+
