@@ -1,3 +1,5 @@
+import { Image } from "@/types";
+
 interface CarouselProps {
   images: Image[];
   index: number;
