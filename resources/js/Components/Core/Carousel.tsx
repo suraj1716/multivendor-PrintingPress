@@ -1,23 +1,29 @@
-import { Image } from "@/types";
-import { useState } from "react";
+interface CarouselProps {
+  images: Image[];
+  index: number;
+  onIndexChange: (index: number) => void;
+}
 
-function Carousel({ images }: { images: Image[] }) {
-  const [selectedImage, setSelectedImage] = useState(images[0]);
-
+function Carousel({ images, index, onIndexChange }: CarouselProps) {
   return (
     <div className="flex flex-col items-center gap-4">
       {/* Large Image View */}
-      <div className="relative w-full max-w-2xl">
-        <img
-          src={selectedImage.large}
-          alt="Selected Product"
-          className="w-full h-[500px] object-cover transition-all duration-300"
-        />
-        {/* Optional zoom-in effect */}
-        <div className="absolute inset-0 bg-black opacity-50 hover:opacity-0 transition-opacity">
-          <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white">
-            Hover to Zoom
-          </span>
+      <div className="relative w-full max-w-2xl overflow-hidden">
+        {/* Main Image with Zoom-In Effect */}
+        <div className="w-full h-[500px] relative group">
+          <img
+            src={images[index]?.large}
+            alt="Selected Product"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-125 group-hover:cursor-zoom-in"
+          />
+          {/* Hover Effect - Zoom Tooltip */}
+          <div className="absolute inset-0 flex justify-center items-center">
+            <span
+              className="text-white text-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            >
+              Hover to Zoom
+            </span>
+          </div>
         </div>
       </div>
 
@@ -27,15 +33,15 @@ function Carousel({ images }: { images: Image[] }) {
           <div
             key={image.id}
             className={`cursor-pointer transition-transform duration-300 hover:scale-110 ${
-              selectedImage.id === image.id ? "border-2 border-blue-500" : ""
+              index === i ? "border-2 border-blue-500" : ""
             }`}
-            onClick={() => setSelectedImage(image)}
+            onClick={() => onIndexChange(i)}
           >
-         <img
-  src={image.thumb}
-  alt=""
-  className="w-[40px] h-[40px] object-cover border hover:border-blue-500 transition-all duration-300"
-/>
+            <img
+              src={image.thumb}
+              alt=""
+              className="w-[40px] h-[40px] object-cover border hover:border-blue-500 transition-all duration-300"
+            />
           </div>
         ))}
       </div>

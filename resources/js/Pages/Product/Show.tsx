@@ -124,6 +124,10 @@ const computedProduct = useMemo(() => {
     );
   };
 
+
+
+const [carouselIndex, setCarouselIndex] = useState(0);
+
   const chooseOption = (
     typeId: number,
     option: VariationTypeOption,
@@ -134,6 +138,14 @@ const computedProduct = useMemo(() => {
         ...prevSelectedOptions,
         [typeId]: option,
       };
+
+
+if (option.images?.length > 0) {
+  const imageId = option.images[0]?.id;
+  const index = images.findIndex(img => img.id === imageId);
+  if (index !== -1) setCarouselIndex(index);
+}
+
       if (updateRouter) {
         router.get(
           url,
@@ -263,11 +275,13 @@ return (
 
         {/* Carousel Section (Images) */}
         <div className="flex justify-center items-center">
-       <Carousel
+ <Carousel
   images={images.map((img) => ({
     ...img,
     className: "w-full h-full object-cover rounded-md shadow",
   }))}
+  index={carouselIndex}
+  onIndexChange={setCarouselIndex}
 />
         </div>
 
