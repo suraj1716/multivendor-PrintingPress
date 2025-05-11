@@ -1,6 +1,7 @@
 import Carousel from "@/Components/Core/Carousel";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Product, VariationTypeOption } from "@/types";
+import { CurrencyFormatter } from "@/utils/CurrencyFormatter";
 import { arraysAreEqual } from "@/utils/helpers";
 import { Head, router, useForm, usePage } from "@inertiajs/react";
 import React, { ChangeEvent, useEffect, useMemo, useState } from "react";
@@ -12,11 +13,6 @@ function Show({
   product: Product;
   variationOptions: number[];
 }) {
-
-
-
-
-
   const form = useForm<{
     options_ids: Record<string, number>;
     quantity: number;
@@ -34,75 +30,90 @@ function Show({
   >({});
 
 const images = useMemo(() => {
-  for (let typeId in selectedOptions) {
-    const option = selectedOptions[typeId];
-    if (Array.isArray(option?.images) && option.images.length > 0) {
-      // Ensure each image matches the expected structure
-      return option.images.map(image => ({
-        id: image.id || 0,  // Default id if missing
-        thumb: image.thumb || "/placeholder.jpg",  // Fallback thumb
-        small: image.small || image.thumb || "/placeholder.jpg",  // Fallback small
-        large: image.large || image.thumb || "/placeholder.jpg",  // Fallback large
-      }));
+  const imageSet = new Map<number, { id: number; thumb: string; small: string; large: string }>();
+
+  // Collect images from all selected options
+  for (let option of Object.values(selectedOptions)) {
+    if (Array.isArray(option.images)) {
+      option.images.forEach((image) => {
+        const id = image.id || 0;
+        if (!imageSet.has(id)) {
+          imageSet.set(id, {
+            id,
+            thumb: image.thumb || "/placeholder.jpg",
+            small: image.small || image.thumb || "/placeholder.jpg",
+            large: image.large || image.thumb || "/placeholder.jpg",
+          });
+        }
+      });
     }
   }
 
-  if (Array.isArray(product.images) && product.images.length > 0) {
-    // Ensure each image matches the expected structure
-    return product.images.map(image => ({
-      id: image.id || 0,  // Default id if missing
-      thumb: image.thumb || "/placeholder.jpg",  // Fallback thumb
-      small: image.small || image.thumb || "/placeholder.jpg",  // Fallback small
-      large: image.large || image.thumb || "/placeholder.jpg",  // Fallback large
-    }));
+  // If no images from selected options, use product images
+  if (imageSet.size === 0 && Array.isArray(product.images)) {
+    product.images.forEach((image) => {
+      const id = image.id || 0;
+      if (!imageSet.has(id)) {
+        imageSet.set(id, {
+          id,
+          thumb: image.thumb || "/placeholder.jpg",
+          small: image.small || image.thumb || "/placeholder.jpg",
+          large: image.large || image.thumb || "/placeholder.jpg",
+        });
+      }
+    });
   }
 
-  // Return fallback with all necessary properties
-  return [{
-    id: 0,
-    thumb: "/placeholder.jpg",
-    small: "/placeholder.jpg",
-    large: "/placeholder.jpg"
-  }];
+  // If still no images, use placeholder
+  if (imageSet.size === 0) {
+    imageSet.set(0, {
+      id: 0,
+      thumb: "/placeholder.jpg",
+      small: "/placeholder.jpg",
+      large: "/placeholder.jpg",
+    });
+  }
+
+  return Array.from(imageSet.values());
 }, [product, selectedOptions]);
 
 
 
 
+  const computedProduct = useMemo(() => {
+    const selectedOptionIds = Object.values(selectedOptions)
+      .map((op) => op.id)
+      .sort();
 
+    console.log("Selected Option IDs:", selectedOptionIds);
 
-const computedProduct = useMemo(() => {
-  const selectedOptionIds = Object.values(selectedOptions)
-    .map((op) => op.id)
-    .sort();
+    if (Array.isArray(product.variations)) {
+      for (let variation of product.variations) {
+        console.log(
+          "Variation's option IDs:",
+          variation.variation_type_option_ids
+        );
 
-  console.log("Selected Option IDs:", selectedOptionIds);
+        let optionIds = variation.variation_type_option_ids.slice().sort();
 
-  if (Array.isArray(product.variations)) {
-    for (let variation of product.variations) {
-      console.log("Variation's option IDs:", variation.variation_type_option_ids);
-
-      let optionIds = variation.variation_type_option_ids.slice().sort();
-
-      if (arraysAreEqual(selectedOptionIds, optionIds)) {
-        return {
-          ...product,
-          price: variation.price,
-          quantity: variation.quantity === null ? Number.MAX_VALUE : variation.quantity,
-        };
+        if (arraysAreEqual(selectedOptionIds, optionIds)) {
+          return {
+            ...product,
+            price: variation.price,
+            quantity:
+              variation.quantity === null
+                ? Number.MAX_VALUE
+                : variation.quantity,
+          };
+        }
       }
     }
-  }
 
-  return {
-    price: product.price,
-    quantity: product.quantity,
-  };
-}, [product, selectedOptions]);
-
-
-
-
+    return {
+      price: product.price,
+      quantity: product.quantity,
+    };
+  }, [product, selectedOptions]);
 
   useEffect(() => {
     for (let type of product.variationTypes) {
@@ -124,9 +135,7 @@ const computedProduct = useMemo(() => {
     );
   };
 
-
-
-const [carouselIndex, setCarouselIndex] = useState(0);
+  const [carouselIndex, setCarouselIndex] = useState(0);
 
   const chooseOption = (
     typeId: number,
@@ -139,12 +148,11 @@ const [carouselIndex, setCarouselIndex] = useState(0);
         [typeId]: option,
       };
 
-
-if (option.images?.length > 0) {
-  const imageId = option.images[0]?.id;
-  const index = images.findIndex(img => img.id === imageId);
-  if (index !== -1) setCarouselIndex(index);
-}
+      if (option.images?.length > 0) {
+        const imageId = option.images[0]?.id;
+        const index = images.findIndex((img) => img.id === imageId);
+        if (index !== -1) setCarouselIndex(index);
+      }
 
       if (updateRouter) {
         router.get(
@@ -197,8 +205,8 @@ if (option.images?.length > 0) {
                         <img
                           src={option.images[0].thumb}
                           alt={option.name || ""}
-                          className={ "w-[80px] h-[80px] object-cover rounded-md shadow"
-                            +
+                          className={
+                            "w-[80px] h-[80px] object-cover rounded-md shadow" +
                             (selectedOptions[type.id]?.id === option.id
                               ? "outline outline-4 outline-primary"
                               : "")
@@ -265,69 +273,65 @@ if (option.images?.length > 0) {
     form.setData("options_ids", isMap);
   }, [selectedOptions]);
 
-return (
-  <AuthenticatedLayout>
-    <Head title={product.title} />
+  return (
+    <AuthenticatedLayout>
+      <Head title={product.title} />
 
-    <div className="container mx-auto p-8">
-      {/* Main Grid Layout */}
-      <div className="grid gap-8 lg:grid-cols-2">
-
-        {/* Carousel Section (Images) */}
-        <div className="flex justify-center items-center">
- <Carousel
-  images={images.map((img) => ({
-    ...img,
-    className: "w-full h-full object-cover rounded-md shadow",
-  }))}
-  index={carouselIndex}
-  onIndexChange={setCarouselIndex}
-/>
-        </div>
-
-        {/* Product Details Section */}
-        <div className="space-y-6">
-          {/* Product Title */}
-          <h1 className="text-3xl font-semibold">{product.title}</h1>
-
-          {/* Price */}
-          <div className="text-3xl font-bold text-gray-800">
-            {computedProduct.price &&
-              new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: "USD",
-              }).format(computedProduct.price)}
-          </div>
-
-          {/* Product Variations (e.g., size, color) */}
-          <div>{renderProductVariationTypes()}</div>
-
-          {/* Quantity Remaining */}
-          {computedProduct.quantity !== undefined && computedProduct.quantity < 10 && (
-            <div className="text-red-600 my-4">
-              <span>Only {computedProduct.quantity} left in stock</span>
-            </div>
-          )}
-
-          {/* Add to Cart Button */}
-          <div className="mt-4">
-            {renderAddToCartButton()}
-          </div>
-
-          {/* About the Item Section */}
-          <div>
-            <b className="text-xl">About the Item</b>
-            <div
-              className="mt-4 prose max-w-full"
-              dangerouslySetInnerHTML={{ __html: product.description }}
+      <div className="container mx-auto p-8">
+        {/* Main Grid Layout */}
+        <div className="grid gap-8 lg:grid-cols-2">
+          {/* Carousel Section (Images) */}
+          <div className="flex justify-center items-center">
+            <Carousel
+              images={images.map((img) => ({
+                ...img,
+                className: "w-full h-full object-cover rounded-md shadow",
+              }))}
+              index={carouselIndex}
+              onIndexChange={setCarouselIndex}
             />
+          </div>
+
+          {/* Product Details Section */}
+          <div className="space-y-6">
+            {/* Product Title */}
+            <h1 className="text-3xl font-semibold">{product.title}</h1>
+
+            {/* Price */}
+            <div className="text-3xl font-bold text-gray-800">
+              {computedProduct.price &&
+                <CurrencyFormatter
+                  amount={computedProduct.price}
+                  currency="AUD"/>}
+            </div>
+
+            {/* Product Variations (e.g., size, color) */}
+            <div>{renderProductVariationTypes()}</div>
+
+            {/* Quantity Remaining */}
+            {computedProduct.quantity !== undefined &&
+              computedProduct.quantity < 10 && (
+                <div className="text-red-600 my-4">
+                  <span>Only {computedProduct.quantity} left in stock</span>
+                </div>
+              )}
+
+            {/* Add to Cart Button */}
+            <div className="mt-4">{renderAddToCartButton()}</div>
+
+            {/* About the Item Section */}
+            <div>
+              <b className="text-xl">About the Item</b>
+              <div
+                className="mt-4 prose max-w-full"
+                dangerouslySetInnerHTML={{ __html: product.description }}
+              />
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </AuthenticatedLayout>
-);
-
+    </AuthenticatedLayout>
+  );
 }
 
 export default Show;

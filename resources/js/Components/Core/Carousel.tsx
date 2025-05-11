@@ -8,29 +8,9 @@ interface CarouselProps {
 
 function Carousel({ images, index, onIndexChange }: CarouselProps) {
   return (
-    <div className="flex flex-col items-center gap-4">
-      {/* Large Image View */}
-      <div className="relative w-full max-w-2xl overflow-hidden">
-        {/* Main Image with Zoom-In Effect */}
-        <div className="w-full h-[500px] relative group">
-          <img
-            src={images[index]?.large}
-            alt="Selected Product"
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-125 group-hover:cursor-zoom-in"
-          />
-          {/* Hover Effect - Zoom Tooltip */}
-          <div className="absolute inset-0 flex justify-center items-center">
-            <span
-              className="text-white text-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-            >
-              Hover to Zoom
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Thumbnail Row */}
-      <div className="flex items-center gap-4 overflow-x-scroll py-2">
+    <div className="flex justify-center items-start gap-4">
+      {/* Vertical Thumbnails on Left */}
+      <div className="flex flex-col gap-3">
         {images.map((image, i) => (
           <div
             key={image.id}
@@ -42,13 +22,31 @@ function Carousel({ images, index, onIndexChange }: CarouselProps) {
             <img
               src={image.thumb}
               alt=""
-              className="w-[40px] h-[40px] object-cover border hover:border-blue-500 transition-all duration-300"
+              className="w-[50px] h-[50px] object-cover border hover:border-blue-500 transition-all duration-300"
             />
           </div>
         ))}
       </div>
+
+      {/* Main Image */}
+      <div className="relative w-[500px] h-[400px] overflow-hidden">
+        <div className="w-full h-full relative group">
+          <img
+            src={images[index]?.large}
+            alt="Selected Product"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 group-hover:cursor-zoom-in"
+          />
+          <div className="absolute inset-0 flex justify-center items-center">
+            <span className="text-white text-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              Hover to Zoom
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
+
+
 
 export default Carousel;

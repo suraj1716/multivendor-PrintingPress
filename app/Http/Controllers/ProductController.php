@@ -14,7 +14,7 @@ class ProductController extends Controller
     {
         // Fetch products from the database
         $products = Product::query()
-        ->published()
+        ->forWebsite()
         ->paginate(12);
 
         // Return a view with the products
