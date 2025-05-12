@@ -6,6 +6,7 @@ use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\VariationType;
 use App\Models\VariationTypeOption;
+use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
@@ -18,22 +19,34 @@ class CartService
     protected const COOKIE_NAME = 'cartItems';
     protected const COOKIE_LIFETIME = 60 * 24 * 30; // 30 days
 
+
+
+
     public function addItemToCart(Product $product, int $quantity = 1, $optionIds = null)
     {
+
+ $optionIds = request()->input('options_ids');
         if ($optionIds === null) {
+
             $optionIds = $product->variationTypes
                 ->mapWithKeys(fn(VariationType $type) => [$type->id => $type->options[0]?->id])
                 ->toArray();
         }
 
-        $price = $product->getPriceForOptions($optionIds);
 
+        $price = $product->getPriceForOptions($optionIds);
+// dd($price,$optionIds);
         if (Auth::check()) {
             $this->saveItemToDatabase($product->id, $quantity, $price, $optionIds);
         } else {
             $this->saveItemToCookies($product->id, $quantity, $price, $optionIds);
         }
     }
+
+
+
+
+
 
     public function updateItemQuantity(int $productId, int $quantity, $optionIds = null)
     {
@@ -53,7 +66,7 @@ class CartService
         }
     }
 
-    public function getCartItems(): array
+   public function getCartItems(): array
     {
         try {
             if ($this->cachedCartItems === null) {
@@ -82,14 +95,15 @@ class CartService
                         ->get()
                         ->keyBy('id');
 
-                    $imageUrl = null ?? $product->getFirstMediaUrl('images', 'small');
-
+                    // Initialize $imageUrl as null
+                    $imageUrl = null;
 
                     foreach ($cartItem['option_ids'] as $option_id) {
                         $option = data_get($options, $option_id);
                         if (!$option) continue;
 
-                        if (!$imageUrl) {
+                        // Assign option image if available
+                        if (!$imageUrl && $option->getFirstMediaUrl('images', 'small')) {
                             $imageUrl = $option->getFirstMediaUrl('images', 'small');
                         }
 
@@ -103,6 +117,9 @@ class CartService
                         ];
                     }
 
+                    // Fallback to product image if no option image is found
+                    $imageUrl = $imageUrl ?: $product->getFirstMediaUrl('images', 'thumb');
+
                     $cartItemData[] = [
                         'id' => $cartItem['id'],
                         'product_id' => $product->id,
@@ -112,29 +129,22 @@ class CartService
                         'quantity' => $cartItem['quantity'],
                         'option_ids' => $cartItem['option_ids'],
                         'options'   => $optionInfo,
-                        'image_url' => $imageUrl ?: $product->getFirstMediaUrl('images', 'thumb'),
+                        'image_url' => $imageUrl,
                         'user' => [
                             'id' => $product->created_by,
                             'name' => $product->user->vendor->store_name,
-
                         ],
                     ];
                 }
 
-
                 $this->cachedCartItems = $cartItemData;
             }
 
-
             return $this->cachedCartItems;
         } catch (\Exception $e) {
-
             Log::error($e->getMessage() . PHP_EOL . $e->getTraceAsString());
         }
         return []; // Optional: log the error or handle it
-
-
-
     }
 
     public function getTotalQuantity(): int
@@ -278,7 +288,9 @@ class CartService
     protected function getCartItemsFromCookies(): array
     {
         $cartItems = json_decode(Cookie::get(self::COOKIE_NAME, '[]'), true);
+
         return $cartItems;
+
     }
 
     public function getCartItemsGrouped(): array

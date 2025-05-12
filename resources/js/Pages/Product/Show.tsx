@@ -85,14 +85,11 @@ const images = useMemo(() => {
       .map((op) => op.id)
       .sort();
 
-    console.log("Selected Option IDs:", selectedOptionIds);
+
 
     if (Array.isArray(product.variations)) {
       for (let variation of product.variations) {
-        console.log(
-          "Variation's option IDs:",
-          variation.variation_type_option_ids
-        );
+
 
         let optionIds = variation.variation_type_option_ids.slice().sort();
 
@@ -174,16 +171,44 @@ const images = useMemo(() => {
     form.setData("quantity", parseInt(ev.target.value));
   };
 
-  const addToCart = () => {
-    form.setData("options_ids", getOptionIdsMap(selectedOptions));
-    form.post(route("cart.store", product.id), {
-      preserveScroll: true,
-      preserveState: true,
-      onError: (errors) => {
-        console.log(errors);
-      },
-    });
-  };
+const addToCart = () => {
+  const requiredVariationTypeIds = product.variationTypes.map((vt) => vt.id);
+  const selectedOptionTypeIds = Object.keys(selectedOptions).map(Number);
+
+  console.log("Required Variation Type IDs:", requiredVariationTypeIds);
+  console.log("Selected Option Type IDs:", selectedOptionTypeIds);
+  console.log("Selected Options:", selectedOptions);
+
+  // Check if all required variation types are selected
+  const allOptionsSelected = requiredVariationTypeIds.every((id) =>
+    selectedOptionTypeIds.includes(id)
+  );
+
+  if (!allOptionsSelected) {
+    console.warn("Not all options selected.");
+    alert("Please select all product options before adding to cart.");
+    return;
+  }
+
+const optionIdsMap: Record<string, number> = {};
+Object.entries(selectedOptions).forEach(([typeId, option]) => {
+  optionIdsMap[typeId] = option.id;
+});
+
+console.log("Option IDs to submit:", optionIdsMap);
+form.setData("options_ids", optionIdsMap);
+
+  form.post(route("cart.store", product.id), {
+    preserveScroll: true,
+    preserveState: true,
+    onError: (errors) => {
+      console.error("Error adding to cart:", errors);
+    },
+    onSuccess: () => {
+      console.log("Product successfully added to cart.");
+    },
+  });
+};
 
   const renderProductVariationTypes = () => {
     return (
@@ -269,7 +294,7 @@ const images = useMemo(() => {
         ([typeId, option]: [string, VariationTypeOption]) => [typeId, option.id]
       )
     );
-    console.log(isMap);
+
     form.setData("options_ids", isMap);
   }, [selectedOptions]);
 

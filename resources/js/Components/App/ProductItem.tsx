@@ -7,7 +7,7 @@ type ProductItemProps = {
 };
 
 export default function ProductItem({ product }: ProductItemProps) {
-          console.log(product.image);
+
 
   return (
     <div className="card shadow p-4">
