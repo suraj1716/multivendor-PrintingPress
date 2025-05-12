@@ -29,13 +29,32 @@ function Show({
     Record<number, VariationTypeOption>
   >({});
 
-const images = useMemo(() => {
-  const imageSet = new Map<number, { id: number; thumb: string; small: string; large: string }>();
+  const images = useMemo(() => {
+    const imageSet = new Map<
+      number,
+      { id: number; thumb: string; small: string; large: string }
+    >();
 
-  // Collect images from all selected options
-  for (let option of Object.values(selectedOptions)) {
-    if (Array.isArray(option.images)) {
-      option.images.forEach((image) => {
+    // Collect images from all selected options
+    for (let option of Object.values(selectedOptions)) {
+      if (Array.isArray(option.images)) {
+        option.images.forEach((image) => {
+          const id = image.id || 0;
+          if (!imageSet.has(id)) {
+            imageSet.set(id, {
+              id,
+              thumb: image.thumb || "/placeholder.jpg",
+              small: image.small || image.thumb || "/placeholder.jpg",
+              large: image.large || image.thumb || "/placeholder.jpg",
+            });
+          }
+        });
+      }
+    }
+
+    // If no images from selected options, use product images
+    if (imageSet.size === 0 && Array.isArray(product.images)) {
+      product.images.forEach((image) => {
         const id = image.id || 0;
         if (!imageSet.has(id)) {
           imageSet.set(id, {
@@ -47,50 +66,27 @@ const images = useMemo(() => {
         }
       });
     }
-  }
 
-  // If no images from selected options, use product images
-  if (imageSet.size === 0 && Array.isArray(product.images)) {
-    product.images.forEach((image) => {
-      const id = image.id || 0;
-      if (!imageSet.has(id)) {
-        imageSet.set(id, {
-          id,
-          thumb: image.thumb || "/placeholder.jpg",
-          small: image.small || image.thumb || "/placeholder.jpg",
-          large: image.large || image.thumb || "/placeholder.jpg",
-        });
-      }
-    });
-  }
+    // If still no images, use placeholder
+    if (imageSet.size === 0) {
+      imageSet.set(0, {
+        id: 0,
+        thumb: "/placeholder.jpg",
+        small: "/placeholder.jpg",
+        large: "/placeholder.jpg",
+      });
+    }
 
-  // If still no images, use placeholder
-  if (imageSet.size === 0) {
-    imageSet.set(0, {
-      id: 0,
-      thumb: "/placeholder.jpg",
-      small: "/placeholder.jpg",
-      large: "/placeholder.jpg",
-    });
-  }
-
-  return Array.from(imageSet.values());
-}, [product, selectedOptions]);
-
-
-
+    return Array.from(imageSet.values());
+  }, [product, selectedOptions]);
 
   const computedProduct = useMemo(() => {
     const selectedOptionIds = Object.values(selectedOptions)
       .map((op) => op.id)
       .sort();
 
-
-
     if (Array.isArray(product.variations)) {
       for (let variation of product.variations) {
-
-
         let optionIds = variation.variation_type_option_ids.slice().sort();
 
         if (arraysAreEqual(selectedOptionIds, optionIds)) {
@@ -171,44 +167,44 @@ const images = useMemo(() => {
     form.setData("quantity", parseInt(ev.target.value));
   };
 
-const addToCart = () => {
-  const requiredVariationTypeIds = product.variationTypes.map((vt) => vt.id);
-  const selectedOptionTypeIds = Object.keys(selectedOptions).map(Number);
+  const addToCart = () => {
+    const requiredVariationTypeIds = product.variationTypes.map((vt) => vt.id);
+    const selectedOptionTypeIds = Object.keys(selectedOptions).map(Number);
 
-  console.log("Required Variation Type IDs:", requiredVariationTypeIds);
-  console.log("Selected Option Type IDs:", selectedOptionTypeIds);
-  console.log("Selected Options:", selectedOptions);
+    console.log("Required Variation Type IDs:", requiredVariationTypeIds);
+    console.log("Selected Option Type IDs:", selectedOptionTypeIds);
+    console.log("Selected Options:", selectedOptions);
 
-  // Check if all required variation types are selected
-  const allOptionsSelected = requiredVariationTypeIds.every((id) =>
-    selectedOptionTypeIds.includes(id)
-  );
+    // Check if all required variation types are selected
+    const allOptionsSelected = requiredVariationTypeIds.every((id) =>
+      selectedOptionTypeIds.includes(id)
+    );
 
-  if (!allOptionsSelected) {
-    console.warn("Not all options selected.");
-    alert("Please select all product options before adding to cart.");
-    return;
-  }
+    if (!allOptionsSelected) {
+      console.warn("Not all options selected.");
+      alert("Please select all product options before adding to cart.");
+      return;
+    }
 
-const optionIdsMap: Record<string, number> = {};
-Object.entries(selectedOptions).forEach(([typeId, option]) => {
-  optionIdsMap[typeId] = option.id;
-});
+    const optionIdsMap: Record<string, number> = {};
+    Object.entries(selectedOptions).forEach(([typeId, option]) => {
+      optionIdsMap[typeId] = option.id;
+    });
 
-console.log("Option IDs to submit:", optionIdsMap);
-form.setData("options_ids", optionIdsMap);
+    console.log("Option IDs to submit:", optionIdsMap);
+    form.setData("options_ids", optionIdsMap);
 
-  form.post(route("cart.store", product.id), {
-    preserveScroll: true,
-    preserveState: true,
-    onError: (errors) => {
-      console.error("Error adding to cart:", errors);
-    },
-    onSuccess: () => {
-      console.log("Product successfully added to cart.");
-    },
-  });
-};
+    form.post(route("cart.store", product.id), {
+      preserveScroll: true,
+      preserveState: true,
+      onError: (errors) => {
+        console.error("Error adding to cart:", errors);
+      },
+      onSuccess: () => {
+        console.log("Product successfully added to cart.");
+      },
+    });
+  };
 
   const renderProductVariationTypes = () => {
     return (
@@ -324,10 +320,12 @@ form.setData("options_ids", optionIdsMap);
 
             {/* Price */}
             <div className="text-3xl font-bold text-gray-800">
-              {computedProduct.price &&
+              {computedProduct.price && (
                 <CurrencyFormatter
                   amount={computedProduct.price}
-                  currency="AUD"/>}
+                  currency="AUD"
+                />
+              )}
             </div>
 
             {/* Product Variations (e.g., size, color) */}

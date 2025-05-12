@@ -4,6 +4,7 @@ import { Link, router, useForm } from "@inertiajs/react";
 import { error } from "console";
 import TextInput from "../Core/TextInput";
 import React, { useState } from "react";
+import { CurrencyFormatter } from "@/utils/CurrencyFormatter";
 
 // type Props = {
 //   item: CartItemType;
@@ -49,6 +50,12 @@ router.put(route('cart.update',item.product_id),{
     <Link href={productRoute(item)}>
     {item.title}
     </Link>
+  </h3>
+
+  <h3 className="mb-3 text-sm font-extrabold">
+
+    Total Price: <CurrencyFormatter amount={item.price * item.quantity} currency="AUD"/ >
+
   </h3>
 
   <div className="text-xs">

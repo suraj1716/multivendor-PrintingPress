@@ -29,6 +29,11 @@ class CartController extends Controller
      */
     public function store(Request $request, Product $product, CartService $cartService)
     {
+   $optionIds = $request->input('options_ids');
+
+if (is_array($optionIds)) {
+    ksort($optionIds);
+}
         $request->mergeIfMissing([
             'quantity'
         ]);
