@@ -28,9 +28,9 @@ class StripeController extends Controller
 
         // $orders=Order::where('stripe_session_id', $session_id)
         // ->get();
-    $orders = Order::with(['vendorUser', 'orderItems.product'])
-               ->where('stripe_session_id', $session_id)
-               ->get();
+    $orders = Order::where('stripe_session_id', $session_id)
+    ->with('vendor') // Eager load the vendor relationship
+    ->get();
 
         if($orders->count()===0){
             abort(404);
@@ -55,6 +55,7 @@ class StripeController extends Controller
 
     public function webhook(Request $request)
     {
+        Log::info('Webhook hit');
         $stripe = new StripeClient(config('app.stripe_secret_key'));
         $endpointSecret = config('app.stripe_webhook_secret');
         $payload = $request->getContent();
@@ -131,6 +132,7 @@ class StripeController extends Controller
                     $order->payment_intent = $paymentIntent;
                     $order->status = OrderStatusEnum::Paid;
                     $order->save();
+
 
                     $userId = $order->user_id;
 

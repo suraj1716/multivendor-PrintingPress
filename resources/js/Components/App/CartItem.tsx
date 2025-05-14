@@ -13,12 +13,14 @@ import { CurrencyFormatter } from "@/utils/CurrencyFormatter";
 function CartItem({item}:{ item :CartItemType}) {
 
 const deleteForm=useForm({
+
   option_ids:item.option_ids
 })
 
 const [error, setError]=useState('')
 
 const onDeleteClick=()=>{
+
   deleteForm.delete(route('cart.destroy', item.product_id), {
     preserveScroll:true
   })

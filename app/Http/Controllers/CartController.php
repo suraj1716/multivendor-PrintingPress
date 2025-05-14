@@ -121,7 +121,7 @@ class CartController extends Controller
 // dd($cartItems);
                 foreach ($cartItems as $cartItem) {
                     OrderItem::create([
-                        
+
                         'order_id' => $order->id,
                         'product_id' => $cartItem['product_id'],
                         'quantity' => $cartItem['quantity'],
