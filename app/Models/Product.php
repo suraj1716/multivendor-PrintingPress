@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Spatie\Image\Manipulations;
+use Spatie\MediaLibrary\Conversions\Manipulations as ConversionsManipulations;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -32,7 +34,7 @@ class Product extends Model implements HasMedia
     }
 
 
-     public function ScopeForWebsite(Builder $query): Builder
+    public function ScopeForWebsite(Builder $query): Builder
     {
         return $query->published();
     }
@@ -47,13 +49,20 @@ class Product extends Model implements HasMedia
     {
         $this->addMediaConversion('thumb')
             ->width(100)
+            ->quality(80)
             ->performOnCollections('images');
+
         $this->addMediaConversion('small')
             ->width(480)
+            ->quality(80)
             ->performOnCollections('images');
+
         $this->addMediaConversion('large')
-            ->width(1200)
-            ->performOnCollections('images');
+          ->width(1200)
+    ->height(800)
+    ->optimize()
+    ->quality(75)
+    ->performOnCollections('images');
     }
     public function user(): BelongsTo
     {
@@ -84,17 +93,35 @@ class Product extends Model implements HasMedia
         return $this->hasMany(ProductVariation::class, 'product_id');
     }
 
-    public function getPriceForOptions($optionIds=[])
+    public function getPriceForOptions($optionIds = [])
     {
-        $optionIds=array_values($optionIds);
+        $optionIds = array_values($optionIds);
         sort($optionIds);
         foreach ($this->variations as $variation) {
-           $a=$variation->variation_type_option_ids;
-           sort($a);
-            if ($a===$optionIds) {
+            $a = $variation->variation_type_option_ids;
+            sort($a);
+            if ($a === $optionIds) {
                 return $variation->price !== null ? $variation->price : $this->price;
             }
         }
-        return $this->price ;
+        return $this->price;
     }
+
+public function getImageForOptions(array $optionIds=null){
+if($optionIds){
+    $optionIds=array_values($optionIds);
+    sort($optionIds);
+    $options=VariationTypeOption::whereIn('id',$optionIds)->get();
+
+    foreach($options as $option){
+        $image=$option->getFirstMediaUrl('images','small');
+        if($image){
+            return $image;
+        }
+    }
+}
+
+return $this->getFirstMediaUrl('images','small');
+}
+
 }

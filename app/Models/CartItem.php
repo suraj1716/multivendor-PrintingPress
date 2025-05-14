@@ -6,7 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class CartItem extends Model
 {
-    protected $casts=[
-        'variation_type_option_ids'=>'array'
+    /**
+     * The attributes that should be cast to native types.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'variation_type_option_ids' => 'array',
     ];
 }
+

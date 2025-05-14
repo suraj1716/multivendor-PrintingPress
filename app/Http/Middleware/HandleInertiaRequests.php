@@ -35,6 +35,7 @@ class HandleInertiaRequests extends Middleware
         $totalQuantity = $cartService->getTotalQuantity();
         $totalPrice = $cartService->getTotalPrice();
         $cartItems = $cartService->getCartItems();
+
         // dd($totalQuantity,$totalPrice,$cartItems);
 
         return [
@@ -52,7 +53,7 @@ class HandleInertiaRequests extends Middleware
 'totalPrice'=>$totalPrice,
 'totalQuantity'=>$totalQuantity,
 'miniCartItems'=>$cartItems,
-
+'error'=>session('error')
         ];
     }
 }

@@ -24,14 +24,12 @@ return new class extends Migration
             $table->string('name');
         });
 
-
-        Schema::create('Product_variations', function (Blueprint $table) {
+        Schema::create('product_variations', function (Blueprint $table) {
             $table->id();
-           $table->foreignId('product_id')->index()->constrained('products')->cascadeOnDelete();
+            $table->foreignId('product_id')->index()->constrained('products')->cascadeOnDelete();
             $table->json('variation_type_option_ids');
             $table->integer('quantity')->nullable();
-            $table->decimal('price',20,4)->nullable()  ;
-
+            $table->decimal('price', 20, 4)->nullable();
             $table->timestamps();
         });
     }
@@ -41,6 +39,8 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('variation_type_options');
+        Schema::dropIfExists('variation_types');
         Schema::dropIfExists('product_variations');
     }
 };
