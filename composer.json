@@ -16,7 +16,7 @@
         "laravel/tinker": "^2.10.1",
         "spatie/image-optimizer": "^1.8",
         "spatie/laravel-permission": "^6.17",
-        "stripe/stripe-php": "^17.2",
+        "stripe/stripe-php": "13.8.0",
         "tightenco/ziggy": "^2.0"
     },
     "require-dev": {

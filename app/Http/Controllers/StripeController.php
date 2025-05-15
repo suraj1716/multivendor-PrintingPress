@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Enums\OrderStatusEnum;
 use App\Http\Resources\OrderViewResource;
+use App\Mail\CheckoutCompleted;
+use App\Mail\NewOrderMail;
 use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Stripe\Exception\SignatureVerificationException;
 use Stripe\StripeClient;
@@ -98,17 +101,31 @@ class StripeController extends Controller
         }
 
         $platformFeePercent = config('app.platform_fee_pct');
-        $orders = Order::where('payment_intent', $paymentIntent)->get();
 
-        foreach ($orders as $order) {
-            $vendorShare = $order->total_price / $totalAmount;
+       $orders = Order::where('payment_intent', $paymentIntent)
+    ->with(['user', 'vendorUser.Vendor', 'orderItems.product']) // Eager load relationships
+    ->get();
 
-            $order->online_payment_comission = $vendorShare * $stripeFee;
-            $order->website_payment_comission = (($order->total_price - $order->online_payment_comission) / 100) * $platformFeePercent;
-            $order->vendor_subtotal = $order->total_price - $order->online_payment_comission - $order->website_payment_comission;
 
-            $order->save();
-        }
+if ($orders->isEmpty()) {
+    Log::warning("No orders found for payment_intent: $paymentIntent");
+    return response('No orders found', 404);
+}
+
+foreach ($orders as $order) {
+    $vendorShare = $order->total_price / $totalAmount;
+
+    $order->online_payment_comission = $vendorShare * $stripeFee;
+    $order->website_payment_comission = (($order->total_price - $order->online_payment_comission) / 100) * $platformFeePercent;
+    $order->vendor_subtotal = $order->total_price - $order->online_payment_comission - $order->website_payment_comission;
+
+    $order->save();
+
+    Mail::to($order->VendorUser)->send(new NewOrderMail($order));
+}
+
+// Now it's safe to access $orders[0]
+Mail::to($orders[0]->user)->send(new CheckoutCompleted($orders));
 
     } catch (\Exception $e) {
         Log::error('Error processing charge.updated: ' . $e->getMessage());

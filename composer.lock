@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4106c7bf6711bccd588dc81333f94b81",
+    "content-hash": "52c2f6723a578f272971e033afb20870",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -5661,16 +5661,16 @@
         },
         {
             "name": "stripe/stripe-php",
-            "version": "v17.2.0",
+            "version": "v13.8.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/stripe/stripe-php.git",
-                "reference": "ff2364c75533b71116ea11994d6bd08989b7f67b"
+                "reference": "577d64a3fdc92ba2915263299a69136a2813f4a3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/stripe/stripe-php/zipball/ff2364c75533b71116ea11994d6bd08989b7f67b",
-                "reference": "ff2364c75533b71116ea11994d6bd08989b7f67b",
+                "url": "https://api.github.com/repos/stripe/stripe-php/zipball/577d64a3fdc92ba2915263299a69136a2813f4a3",
+                "reference": "577d64a3fdc92ba2915263299a69136a2813f4a3",
                 "shasum": ""
             },
             "require": {
@@ -5680,7 +5680,7 @@
                 "php": ">=5.6.0"
             },
             "require-dev": {
-                "friendsofphp/php-cs-fixer": "3.72.0",
+                "friendsofphp/php-cs-fixer": "3.5.0",
                 "phpstan/phpstan": "^1.2",
                 "phpunit/phpunit": "^5.7 || ^9.0"
             },
@@ -5714,9 +5714,9 @@
             ],
             "support": {
                 "issues": "https://github.com/stripe/stripe-php/issues",
-                "source": "https://github.com/stripe/stripe-php/tree/v17.2.0"
+                "source": "https://github.com/stripe/stripe-php/tree/v13.8.0"
             },
-            "time": "2025-04-30T19:20:34+00:00"
+            "time": "2024-01-04T19:52:48+00:00"
         },
         {
             "name": "symfony/clock",

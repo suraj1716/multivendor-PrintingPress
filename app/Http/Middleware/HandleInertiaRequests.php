@@ -49,7 +49,10 @@ class HandleInertiaRequests extends Middleware
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),
             ],
-'success'=>session('success'),
+'success'=>[
+'message'=>  session('success'),
+'time'=>microtime(true)
+],
 'totalPrice'=>$totalPrice,
 'totalQuantity'=>$totalQuantity,
 'miniCartItems'=>$cartItems,

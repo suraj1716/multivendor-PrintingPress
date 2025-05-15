@@ -95,7 +95,10 @@ export type PageProps<
 > = T & {
   csrf_token: string;
   error:string,
-  success:string,
+  success:{
+message:string;
+time:number
+  },
     auth: {
         user: User;
     };
