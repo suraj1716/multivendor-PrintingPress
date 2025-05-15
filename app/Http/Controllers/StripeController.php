@@ -196,4 +196,19 @@ Log::debug('Event payload', ['event' => $event]);
 
         return response('', 200);
     }
+
+public function connect()
+{
+     $user = Auth::user();
+    if(!$user->getStripeAccountId()){
+        $user->createStripeAccount(['type'=>'express']);
+    }
+
+    if(!$user->isStripeAccountActive()){
+        return redirect($user->getstripeAccountLink());
+    }
+
+    return back()->with('success','Your account is already connected');
+}
+
 }
