@@ -7,6 +7,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\VendorController;
 use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -14,6 +15,17 @@ use Inertia\Inertia;
 
 Route::get('/', [ProductController::class, 'home'])->name('dashboard');
 Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('product.show');
+
+Route::get('/search-suggestions', function (Request $request) {
+    $keyword = $request->query('keyword');
+    $suggestions = \App\Models\Product::query()
+        ->forWebsite()
+        ->where('title', 'LIKE', "%{$keyword}%")
+        ->limit(10)
+        ->pluck('title');
+
+    return response()->json($suggestions);
+});
 
 Route::get('/d/{department:slug}',[ProductController::class, 'byDepartment'])
 ->name('product.byDepartment');

@@ -43,11 +43,27 @@ class Product extends Model implements HasMedia
     }
 
 
-public function scopeVendorApproved(Builder $query)
+    public function scopeVendorApproved(Builder $query)
+    {
+        return $query->join('vendors', 'vendors.user_id', '=', 'products.created_by')
+            ->where('vendors.status', VendorStatusEnum::Approved->value);
+    }
+
+
+
+// In Product.php model
+public function scopeSearchKeyword($query, $keyword)
 {
-   return $query->join('vendors', 'vendors.user_id', '=', 'products.created_by')
-    ->where('vendors.status', VendorStatusEnum::Approved->value);
+    if ($keyword) {
+        $query->where(function ($q) use ($keyword) {
+            $q->where('title', 'LIKE', "%{$keyword}%")
+              ->orWhere('description', 'LIKE', "%{$keyword}%");
+        });
+    }
+
+    return $query;
 }
+
 
 
     public function registerMediaCollections(): void
@@ -69,11 +85,11 @@ public function scopeVendorApproved(Builder $query)
             ->performOnCollections('images');
 
         $this->addMediaConversion('large')
-          ->width(1200)
-    ->height(800)
-    ->optimize()
-    ->quality(75)
-    ->performOnCollections('images');
+            ->width(1200)
+            ->height(800)
+            ->optimize()
+            ->quality(75)
+            ->performOnCollections('images');
     }
 
 
@@ -124,9 +140,8 @@ public function scopeVendorApproved(Builder $query)
 
     public function getPriceForFirstOptions(): float
     {
-        $firstOptions=$this->getFirstOptionsMap();
-        if($firstOptions)
-        {
+        $firstOptions = $this->getFirstOptionsMap();
+        if ($firstOptions) {
             return $this->getPriceForOptions($firstOptions);
         }
         return $this->price;
@@ -147,61 +162,56 @@ public function scopeVendorApproved(Builder $query)
     }
 
 
-public function getImages(): MediaCollection
-{
-if($this->options->count())
-{
-    foreach($this->options as $opt)
+    public function getImages(): MediaCollection
     {
-        $images=$opt->getMedia('images');
-        if($images)
-        {
-            return $images;
-        }
-    }
-}
-return $this->getMedia('images');
-}
-
-public function getFirstOptionsMap():array
-{
-    return $this->variationTypes
-    ->mapWithKeys(fn($type)=>[$type->id=>$type->options[0]?->id])
-    ->toArray();
-}
-
-public function getImageForOptions(array $optionIds=null){
-if($optionIds){
-    $optionIds=array_values($optionIds);
-    sort($optionIds);
-    $options=VariationTypeOption::whereIn('id',$optionIds)->get();
-
-    foreach($options as $option){
-        $image=$option->getFirstMediaUrl('images','small');
-        if($image){
-            return $image;
-        }
-    }
-}
-
-return $this->getFirstMediaUrl('images','small');
-}
-
-
-public function getFirstImageUrl($collectionName = 'images', $conversion = 'small'): string
-{
-    if ($this->options && $this->options->count() > 0) {
-        foreach ($this->options as $opt) {
-            $imageUrl = $opt->getFirstMediaUrl($collectionName, $conversion);
-            if (!empty($imageUrl)) {
-                return $imageUrl;
+        if ($this->options->count()) {
+            foreach ($this->options as $opt) {
+                $images = $opt->getMedia('images');
+                if ($images) {
+                    return $images;
+                }
             }
         }
+        return $this->getMedia('images');
     }
 
-    return $this->getFirstMediaUrl($collectionName, $conversion);
-}
+    public function getFirstOptionsMap(): array
+    {
+        return $this->variationTypes
+            ->mapWithKeys(fn($type) => [$type->id => $type->options[0]?->id])
+            ->toArray();
+    }
+
+    public function getImageForOptions(array $optionIds = null)
+    {
+        if ($optionIds) {
+            $optionIds = array_values($optionIds);
+            sort($optionIds);
+            $options = VariationTypeOption::whereIn('id', $optionIds)->get();
+
+            foreach ($options as $option) {
+                $image = $option->getFirstMediaUrl('images', 'small');
+                if ($image) {
+                    return $image;
+                }
+            }
+        }
+
+        return $this->getFirstMediaUrl('images', 'small');
+    }
 
 
+    public function getFirstImageUrl($collectionName = 'images', $conversion = 'small'): string
+    {
+        if ($this->options && $this->options->count() > 0) {
+            foreach ($this->options as $opt) {
+                $imageUrl = $opt->getFirstMediaUrl($collectionName, $conversion);
+                if (!empty($imageUrl)) {
+                    return $imageUrl;
+                }
+            }
+        }
 
+        return $this->getFirstMediaUrl($collectionName, $conversion);
+    }
 }

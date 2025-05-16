@@ -7,42 +7,72 @@ use App\Enums\VendorStatusEnum;
 use App\Http\Resources\ProductListResource;
 use App\Models\Product;
 use App\Models\Vendor;
+use App\services\ProductSearchService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class VendorController extends Controller
 {
-    public function profile(Vendor $vendor)
+
+
+    // VendorController profile() method
+    public function profile(Request $request, Vendor $vendor)
     {
-$products=Product::query()
-->forWebsite()
-->where('created_by',$vendor->user_id)
-->paginate();
+        $keyword = $request->query('keyword');
 
-return Inertia::render('Vendor/Profile', [
-    'vendor'=>$vendor,
-    'products'=>ProductListResource::collection($products)
-]);
-;
+        $products = ProductSearchService::queryWithKeyword($keyword, function ($query) use ($vendor) {
+            $query->where('created_by', $vendor->user_id);
+        })->paginate(12);
 
-
+        return Inertia::render('Vendor/Profile', [
+            'vendor' => $vendor,
+            'products' => ProductListResource::collection($products),
+            'keyword' => $keyword,
+        ]);
     }
+
+
+
+    // public function profile(Request $request, Vendor $vendor)
+    // {
+    // $keyword = $request->query('keyword');
+
+    //     $products = Product::query()
+    //         ->forWebsite()
+    //         ->where('created_by', $vendor->user_id)
+    //         ->paginate()
+    //         ->when($keyword, function ($query, $keyword) {
+    //         $query->where(function ($query) use ($keyword) {
+    //             $query->where('title', 'LIKE', "%{$keyword}%")
+    //                   ->orWhere('description', 'LIKE', "%{$keyword}%");
+    //         });
+    //     });;
+
+    //     return Inertia::render('Vendor/Profile', [
+    //         'vendor' => $vendor,
+    //         'products' => ProductListResource::collection($products)
+    //     ]);;
+    // }
 
     public function store(Request $request)
     {
-        $user=$request->user();
+        $user = $request->user();
 
-        $request->validate([
-            'store_name' => ['required', 'regex:/^[a-z0-9-]+$/',
-            Rule::unique('vendors','store_name')->ignore($user->id,'user_id'),
+        $request->validate(
+            [
+                'store_name' => [
+                    'required',
+                    'regex:/^[a-z0-9-]+$/',
+                    Rule::unique('vendors', 'store_name')->ignore($user->id, 'user_id'),
 
-        ],
-            'store_address' => 'nullable',
-    ],
-        [
-            'store_name.regex' => 'store name must only contain lowercase alphanumeric characters and dashes',
-        ]);
+                ],
+                'store_address' => 'nullable',
+            ],
+            [
+                'store_name.regex' => 'store name must only contain lowercase alphanumeric characters and dashes',
+            ]
+        );
 
 
         $user = $request->user();
