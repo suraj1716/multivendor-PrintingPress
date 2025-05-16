@@ -29,6 +29,7 @@ class CartService
         $optionIds = request()->input('options_ids');
         if ($optionIds === null) {
            $optionIds = [];
+           $optionIds = $product->getFirstOptionsMap();
             // $optionIds = $product->variationTypes
             //     ->mapWithKeys(fn(VariationType $type) => [$type->id => $type->options[0]?->id])
             //     ->toArray();
@@ -85,7 +86,7 @@ class CartService
                 $products = Product::whereIn('id', $productIds)
                     ->with('user.vendor')
                     ->forWebsite()
-                    ->get()
+                    ->paginate(50)
                     ->keyBy('id');
 
                 $cartItemData = [];
@@ -110,7 +111,7 @@ class CartService
 
                     $options = VariationTypeOption::with('variationType')
                         ->whereIn('id', $optionIds)
-                        ->get()
+                        ->paginate(50)
                         ->keyBy('id');
 
 
@@ -291,7 +292,7 @@ class CartService
     // Check if an item exists before attempting to delete it
     $cartItem = CartItem::where('user_id', $userId)
                     ->where('product_id', $productId)
-                    ->get()
+                    ->paginate(50)
                     ->filter(function ($item) use ($optionIds) {
                         $storedOptionIds = is_string($item->variation_type_option_ids)
                             ? json_decode($item->variation_type_option_ids, true)
@@ -333,7 +334,7 @@ class CartService
 
         $userId = Auth::id();
         $cartItems = CartItem::where('user_id', $userId)
-            ->get()
+            ->paginate(50)
             ->map(function ($cartItem) {
                 return [
                     'id' => $cartItem->id,

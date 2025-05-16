@@ -6,6 +6,7 @@ function MiniCartDropdown() {
   const { totalPrice, totalQuantity, miniCartItems } = usePage().props;
     console.log(totalPrice);
   return (
+    <>
     <div className="dropdown dropdown-end">
       <div tabIndex={0} role="button" className="btn btn-ghost btn-circle">
         <div className="indicator">
@@ -88,6 +89,8 @@ function MiniCartDropdown() {
         </div>
       </div>
     </div>
+     </>
   );
+
 }
 export default MiniCartDropdown;

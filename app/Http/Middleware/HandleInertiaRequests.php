@@ -3,6 +3,8 @@
 namespace App\Http\Middleware;
 
 use App\Http\Resources\AuthUserResource;
+use App\Http\Resources\DepartmentResource;
+use App\Models\Department;
 use App\services\CartService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -32,32 +34,37 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $cartService= app(CartService::class) ;
+        $cartService = app(CartService::class);
         $totalQuantity = $cartService->getTotalQuantity();
         $totalPrice = $cartService->getTotalPrice();
         $cartItems = $cartService->getCartItems();
+        $departments = Department::published()
+            ->with('categories')
+            ->get();
 
         // dd($totalQuantity,$totalPrice,$cartItems);
 
         return [
 
             ...parent::share($request),
-            'csrf_token'=>csrf_token(),
+            'appName'=>config('app.name'),
+            'csrf_token' => csrf_token(),
             'auth' => [
                 'user' => $request->user() ? new AuthUserResource($request->user()) : null,
             ],
-            'ziggy' => fn () => [
+            'ziggy' => fn() => [
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),
             ],
-'success'=>[
-'message'=>  session('success'),
-'time'=>microtime(true)
-],
-'totalPrice'=>$totalPrice,
-'totalQuantity'=>$totalQuantity,
-'miniCartItems'=>$cartItems,
-'error'=>session('error')
+            'success' => [
+                'message' =>  session('success'),
+                'time' => microtime(true)
+            ],
+            'totalPrice' => $totalPrice,
+            'totalQuantity' => $totalQuantity,
+            'miniCartItems' => $cartItems,
+            'departments' => DepartmentResource::collection($departments)->collection->toArray(),
+            'error' => session('error')
         ];
     }
 }

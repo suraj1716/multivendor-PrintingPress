@@ -22,6 +22,7 @@ public function scopeEligibleForPayout(Builder $query):Builder
     ->join('users','users.id','=', 'vendors.user_id')
     ->where('users.stripe_account_active',true);
 }
+
 public function user(): BelongsTo
 {
     return $this->belongsTo(User::class, 'user_id');

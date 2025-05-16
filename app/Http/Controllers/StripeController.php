@@ -33,7 +33,7 @@ class StripeController extends Controller
         // ->get();
     $orders = Order::where('stripe_session_id', $session_id)
     ->with('vendor') // Eager load the vendor relationship
-    ->get();
+    ->paginate(50);
 
         if($orders->count()===0){
             abort(404);

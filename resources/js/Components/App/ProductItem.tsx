@@ -34,8 +34,12 @@ export default function ProductItem({ product }: Props) {
         <div className="card-body">
           <h2 className="card-title">{product.title}</h2>
           <p>
-            by <span className="hover:underline">{product.user.name}</span> in{" "}
-            <span className="hover:underline">{product.department.name}</span>
+           <Link href={route('vendor.profile', product.user.store_name)} className="hover:underline">
+            {product.user.name}
+          </Link>&nbsp;
+                      in <Link href={route('product.byDepartment',product.department.slug)} className="hover:underline">{product.department.name} </Link>;
+
+
           </p>
         </div>
       </Link>

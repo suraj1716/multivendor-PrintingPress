@@ -3,7 +3,7 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Product, VariationTypeOption } from "@/types";
 import { CurrencyFormatter } from "@/utils/CurrencyFormatter";
 import { arraysAreEqual } from "@/utils/helpers";
-import { Head, router, useForm, usePage } from "@inertiajs/react";
+import { Head, Link, router, useForm, usePage } from "@inertiajs/react";
 import React, { ChangeEvent, useEffect, useMemo, useState } from "react";
 
 function Show({
@@ -317,6 +317,15 @@ function Show({
           <div className="space-y-6">
             {/* Product Title */}
             <h1 className="text-3xl font-semibold">{product.title}</h1>
+
+  <p className="mb-8">
+           <Link href={route('vendor.profile', product.user.store_name)} className="hover:underline">
+  {product.user.name}
+</Link>&nbsp;
+            in <Link href={route('product.byDepartment', product.department.slug)} className="hover:underline">{product.department.name} </Link>;
+
+            <span className="hover:underline">{product.department.name}</span>
+          </p>
 
             {/* Price */}
             <div className="text-3xl font-bold text-gray-800">

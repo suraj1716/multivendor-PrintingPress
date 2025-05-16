@@ -52,10 +52,12 @@ export type Product = {
     user : {
         id: number;
         name: string;
+        store_name:string;
     }
     department: {
         id: number;
         name: string;
+        slug:string
     },
 
     variationTypes:VariationType[],
@@ -101,6 +103,7 @@ export type GroupedCartItems = {
 export type PageProps<
     T extends Record<string, unknown> = Record<string, unknown>,
 > = T & {
+  appName:string,
   csrf_token: string;
   error:string,
   success:{
@@ -114,6 +117,7 @@ time:number
     totalQuantity: number;
     totalPrice: number;
     miniCartItems: CartItem[];
+    departments:Department[]
 };
 
 export type OrderItem={
@@ -144,4 +148,28 @@ export type Order={
   }
 
   orderItems:OrderItem[]
+}
+
+
+
+export type Vendor={
+  id:number;
+  store_name:string;
+  store_address:string;
+}
+
+
+
+export type Category={
+  id:number,
+  name:string
+}
+
+export type Department={
+  id:number,
+  name:string,
+  slug:string,
+  meta_title:string,
+  meta_description:string,
+  categories:Category[]
 }

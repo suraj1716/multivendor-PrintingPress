@@ -3,15 +3,18 @@
 namespace App\Models;
 
 use App\Enums\ProductStatusEnum;
+use App\Enums\VendorStatusEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Image\Manipulations;
 use Spatie\MediaLibrary\Conversions\Manipulations as ConversionsManipulations;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Collections\MediaCollection;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Product extends Model implements HasMedia
@@ -30,14 +33,22 @@ class Product extends Model implements HasMedia
 
     public function ScopePublished(Builder $query): Builder
     {
-        return $query->where('status', ProductStatusEnum::Published);
+        return $query->where('products.status', ProductStatusEnum::Published);
     }
 
 
     public function ScopeForWebsite(Builder $query): Builder
     {
-        return $query->published();
+        return $query->published()->VendorApproved();
     }
+
+
+public function scopeVendorApproved(Builder $query)
+{
+   return $query->join('vendors', 'vendors.user_id', '=', 'products.created_by')
+    ->where('vendors.status', VendorStatusEnum::Approved->value);
+}
+
 
     public function registerMediaCollections(): void
     {
@@ -64,10 +75,13 @@ class Product extends Model implements HasMedia
     ->quality(75)
     ->performOnCollections('images');
     }
+
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
 
     public function department(): BelongsTo
     {
@@ -93,6 +107,31 @@ class Product extends Model implements HasMedia
         return $this->hasMany(ProductVariation::class, 'product_id');
     }
 
+
+
+    public function options(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            VariationTypeOption::class,
+            VariationType::class,
+            'product_id',
+            'variation_type_id',
+            'id',
+            'id'
+        );
+    }
+
+
+    public function getPriceForFirstOptions(): float
+    {
+        $firstOptions=$this->getFirstOptionsMap();
+        if($firstOptions)
+        {
+            return $this->getPriceForOptions($firstOptions);
+        }
+        return $this->price;
+    }
+
     public function getPriceForOptions($optionIds = [])
     {
         $optionIds = array_values($optionIds);
@@ -106,6 +145,30 @@ class Product extends Model implements HasMedia
         }
         return $this->price;
     }
+
+
+public function getImages(): MediaCollection
+{
+if($this->options->count())
+{
+    foreach($this->options as $opt)
+    {
+        $images=$opt->getMedia('images');
+        if($images)
+        {
+            return $images;
+        }
+    }
+}
+return $this->getMedia('images');
+}
+
+public function getFirstOptionsMap():array
+{
+    return $this->variationTypes
+    ->mapWithKeys(fn($type)=>[$type->id=>$type->options[0]?->id])
+    ->toArray();
+}
 
 public function getImageForOptions(array $optionIds=null){
 if($optionIds){
@@ -123,5 +186,22 @@ if($optionIds){
 
 return $this->getFirstMediaUrl('images','small');
 }
+
+
+public function getFirstImageUrl($collectionName = 'images', $conversion = 'small'): string
+{
+    if ($this->options && $this->options->count() > 0) {
+        foreach ($this->options as $opt) {
+            $imageUrl = $opt->getFirstMediaUrl($collectionName, $conversion);
+            if (!empty($imageUrl)) {
+                return $imageUrl;
+            }
+        }
+    }
+
+    return $this->getFirstMediaUrl($collectionName, $conversion);
+}
+
+
 
 }

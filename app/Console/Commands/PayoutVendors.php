@@ -26,8 +26,9 @@ class PayoutVendors extends Command
         Log::info('Payout process started');
         $this->info('starting monthly payout process for vendors...');
 
-        $vendors = Vendor::eligibleForPayout()->get();
-        Log::info('Vendors eligible for payout:', ['count' => $vendors->count()]);
+       Log::info('Start fetching vendors...');
+$vendors = Vendor::eligibleForPayout()->with('user')->get();  // log this!
+Log::info('Fetched vendors count: ' . $vendors->count());
 
         foreach ($vendors as $vendor) {
             $this->processPayout($vendor);
