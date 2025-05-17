@@ -25,39 +25,37 @@ export default function Edit() {
     >
       <Head title="Profile" />
 
-      <div className="py-8">
-        <div className="mx-auto max-w-7xl grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
-          <div className={'space-y-6 col-span-2'}>
-            <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-              <UpdateProfileInformationForm
-                mustVerifyEmail={mustVerifyEmail}
-                status={status}
-                className="max-w-xl"
-              />
-            </div>
+   <div className="mx-auto max-w-7xl grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+  {/* ---------- LEFT SIDE ---------- */}
+  <div className="space-y-6">
+    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
+      <UpdateProfileInformationForm
+        mustVerifyEmail={mustVerifyEmail}
+        status={status}
+        className="max-w-xl"
+      />
+    </div>
 
-            <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-              <UpdatePasswordForm className="max-w-xl" />
-            </div>
+    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
+      <UpdatePasswordForm className="max-w-xl" />
+    </div>
 
-            <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-              <DeleteUserForm className="max-w-xl" />
-            </div>
+    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
+      <DeleteUserForm className="max-w-xl" />
+    </div>
+  </div>
 
+  {/* ---------- RIGHT SIDE ---------- */}
+  <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800">
+    <VendorDetails />
 
-
-          </div>
-
-
-<div className={'bg-white p-4 shadow sm:rounded-lg sm_p-8 dark:bg-gray-800'}>
-<VendorDetails/>
- <ShippingAddresses shipping_addresses={shipping_addresses} />
+    {/* add some vertical breathing room before the addresses */}
+    <div className="mt-10">
+      <ShippingAddresses shipping_addresses={shipping_addresses} />
+    </div>
+  </div>
 </div>
 
-
-
-        </div>
-      </div>
     </AuthenticatedLayout>
   );
 }

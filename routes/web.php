@@ -2,6 +2,7 @@
 
 use App\Enums\RolesEnum;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ShippingAddressController;
@@ -17,6 +18,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile/shipping-addresses', [ShippingAddressController::class, 'index'])->name('shipping.index');
    Route::post('/shipping-addresses', [ShippingAddressController::class, 'store'])->name('shipping-addresses.store');
 Route::patch('/shipping-addresses/{address}/default', [ShippingAddressController::class, 'setDefault'])->name('shipping-addresses.set-default');
+Route::put('/shipping-addresses/{shippingAddress}', [ShippingAddressController::class, 'update'])->name('shipping-addresses.update');
+Route::delete('/shipping-addresses/{id}', [ShippingAddressController::class, 'destroy'])->name('shipping-addresses.destroy');
 
 });
 Route::get('/', [ProductController::class, 'home'])->name('dashboard');
@@ -59,6 +62,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/orders-history', [OrderController::class, 'index'])->name('orders.history');
+
 
     Route::middleware(['verified'])->group(function () {
         Route::post('/cart/checkout', [CartController::class, 'checkout'])->name('cart.checkout');

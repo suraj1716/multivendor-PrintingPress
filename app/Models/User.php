@@ -66,5 +66,9 @@ public function shippingAddress()
 {
     return $this->hasMany(ShippingAddress::class);
 }
+public function orders()
+{
+    return $this->hasMany(Order::class);
+}
 
 }

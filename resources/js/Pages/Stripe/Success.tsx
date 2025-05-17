@@ -5,27 +5,27 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { PageProps, Order } from "@/types";
 
 function Success({ orders }: PageProps<{ orders: Order[] }>) {
-  console.log(orders);
   return (
     <AuthenticatedLayout>
       <Head title="Payment was Completed" />
-      <div className="w-[480px] mt-auto py-8 px-4">
-        <div className="flex flex-col gap-2 items-center">
-          <div className="text-6xl text-emerald-600 ">
-            <CheckCircleIcon className={"size-24"} />
+      <div className="max-w-3xl mx-auto min-h-screen flex flex-col justify-center py-8 px-4">
+        <div className="flex flex-col gap-2 items-center mb-8">
+          <div className="text-6xl text-emerald-600">
+            <CheckCircleIcon className="size-24" />
           </div>
-          <div className="text-3xl">Payment was Completed</div>
+          <div className="text-3xl font-semibold">Payment was Completed</div>
         </div>
 
-        <div className="my-6 text-lg">
-          Thanks for your purchase . your payment ws successful.
+        <div className="mb-6 text-lg text-center">
+          Thanks for your purchase. Your payment was successful.
         </div>
+
         {orders.map((order) => (
           <div
             key={order.id}
-            className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-4"
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-6 shadow"
           >
-            <h3 className="text-3xl mb-3">Order Summary</h3>
+            <h3 className="text-3xl mb-4 font-bold">Order Summary</h3>
 
             <div className="flex justify-between mb-2 font-bold">
               <div className="text-gray-400">Seller</div>
@@ -50,14 +50,14 @@ function Success({ orders }: PageProps<{ orders: Order[] }>) {
               <div className="text-gray-500">{order.orderItems.length}</div>
             </div>
 
-            <div className="flex justify-between mb-3">
+            <div className="flex justify-between mb-4">
               <div className="text-gray-400">Total</div>
               <div>
                 <CurrencyFormatter amount={order.total_price} currency="AUD" />
               </div>
             </div>
 
-            <div className="flex justify-between mt-4">
+            <div className="flex justify-between">
               <Link href="#" className="btn btn-primary">
                 View Order Details
               </Link>
@@ -71,4 +71,5 @@ function Success({ orders }: PageProps<{ orders: Order[] }>) {
     </AuthenticatedLayout>
   );
 }
+
 export default Success;

@@ -8,6 +8,16 @@
     🗓 **Order Date:** {{ $order->created_at->format('F j, Y - g:i A') }}
 </x-mail::panel>
 
+## 🚚 Shipping Address:
+
+<div style="margin-bottom: 20px;">
+    {{ $order->shippingAddress->full_name }}<br>
+    {{ $order->shippingAddress->address_line1 }}@if($order->shippingAddress->address_line2), {{ $order->shippingAddress->address_line2 }}@endif<br>
+    {{ $order->shippingAddress->city }}, {{ $order->shippingAddress->state }} {{ $order->shippingAddress->postal_code }}<br>
+    {{ $order->shippingAddress->country }}<br>
+    Phone: {{ $order->shippingAddress->phone }}
+</div>
+
 ## 📦 Ordered Items:
 
 <table width="100%" style="border-collapse: collapse;">

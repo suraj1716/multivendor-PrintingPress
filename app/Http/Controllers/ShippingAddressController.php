@@ -7,7 +7,9 @@ namespace App\Http\Controllers;
 use App\Models\ShippingAddress;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
+
 
 class ShippingAddressController extends Controller
 {
@@ -44,6 +46,46 @@ class ShippingAddressController extends Controller
 
         return redirect()->back()->with('success', 'Shipping address added.');
     }
+
+
+public function update(Request $request, ShippingAddress $shippingAddress)
+{
+
+
+    $data = $request->validate([
+        'full_name' => 'required|string',
+        'phone' => 'required|string',
+        'address_line1' => 'required|string',
+        'address_line2' => 'nullable|string',
+        'city' => 'required|string',
+        'state' => 'required|string',
+        'postal_code' => 'required|string',
+        'country' => 'required|string',
+        'is_default' => 'boolean',
+    ]);
+
+    // Reset other addresses if this one is set to default
+    if ($data['is_default']) {
+        Auth::user()->shippingAddress()->update(['is_default' => false]);
+    }
+
+    $shippingAddress->update($data);
+
+    return redirect()->back()->with('success', 'Shipping address updated.');
+}
+
+
+public function destroy($id)
+{
+    $address = ShippingAddress::findOrFail($id);
+
+    // Optional: Add authorization check if needed
+    // $this->authorize('delete', $address);
+
+    $address->delete();
+
+    return redirect()->back()->with('success', 'Shipping address deleted successfully.');
+}
 
 
 public function setDefault(ShippingAddress $address)

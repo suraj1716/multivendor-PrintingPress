@@ -123,6 +123,11 @@ export default function Navbar() {
                   </Link>
                 </li>
                 <li>
+                  <Link href={route("orders.history")} as="button">
+                    Orders
+                  </Link>
+                </li>
+                <li>
                   <Link href={route("logout")} method="post" as="button">
                     Logout
                   </Link>
@@ -149,7 +154,7 @@ export default function Navbar() {
 
       {/* ================Nav For Departments================= */}
 
-      <div className="navbar bg-base-100 shadow-sm sticky top-0 z-50 relative">
+      <div className="navbar bg-base-100 shadow-sm  top-0 z-50 ">
         <div className="navbar-center hidden lg:flex">
           <ul className="menu menu-horizontal menu-dropdown dropdown-hover px-1 z-20 py-0">
            {departments.map((department) => {
