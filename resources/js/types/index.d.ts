@@ -89,9 +89,34 @@ export type Product = {
     option_ids:Record<string, number>;
     options:VariationTypeOption[];
   }
-export type PaginationProps<T>={
-  data:Array<T>;
-}
+export type PaginationProps<T> = {
+  data: T[];
+
+  // object with first / last / prev / next (rarely used for page buttons)
+  links: {
+    first: string | null;
+    last : string | null;
+    prev : string | null;
+    next : string | null;
+  };
+
+  // meta holds the array you normally loop over
+  meta: {
+    current_page: number;
+    last_page: number;
+    from: number | null;
+    to: number | null;
+    total: number;
+    per_page: number;
+    path: string;
+    links: Array<{
+      url: string | null;
+      label: string;
+      active: boolean;
+    }>;
+  };
+};
+
 
 export type GroupedCartItems = {
     user:User;

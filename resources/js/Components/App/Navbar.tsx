@@ -55,7 +55,7 @@ export default function Navbar() {
 
   return (
     <>
-      <div className="navbar bg-base-100 shadow-sm relative">
+     <div className="navbar bg-base-100 shadow-sm sticky top-0 z-50 relative">
         <div className="flex-1">
           <Link href="/" className="btn btn-ghost text-xl">
             SurajEcom
@@ -144,16 +144,29 @@ export default function Navbar() {
         </div>
       </div>
 
-      <div className="navbar bg-base-100 border-t min-h-4">
+
+
+
+      {/* ================Nav For Departments================= */}
+
+      <div className="navbar bg-base-100 shadow-sm sticky top-0 z-50 relative">
         <div className="navbar-center hidden lg:flex">
           <ul className="menu menu-horizontal menu-dropdown dropdown-hover px-1 z-20 py-0">
-            {departments.map((department) => (
-              <li key={department.id}>
-                <Link href={route("product.byDepartment", department.slug)}>
-                  {department.name}
-                </Link>
-              </li>
-            ))}
+           {departments.map((department) => {
+  const isActive = route().current('product.byDepartment', department.slug);
+
+  return (
+    <li key={department.id}>
+      <Link
+        href={route("product.byDepartment", department.slug)}
+        className={isActive ? "bg-primary text-white font-bold" : ""}
+      >
+        {department.name}
+      </Link>
+    </li>
+  );
+})}
+
           </ul>
         </div>
       </div>

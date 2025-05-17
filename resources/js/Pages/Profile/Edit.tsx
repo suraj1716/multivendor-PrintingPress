@@ -5,11 +5,16 @@ import DeleteUserForm from "./Partials/DeleteUserForm";
 import UpdatePasswordForm from "./Partials/UpdatePasswordForm";
 import UpdateProfileInformationForm from "./Partials/UpdateProfileInformationForm";
 import VendorDetails from "./Partials/VendorDetails";
+import ShippingAddresses, { ShippingAddress } from "./ShippingAddresses";
 
-export default function Edit({
-  mustVerifyEmail,
-  status,
-}: PageProps<{ mustVerifyEmail: boolean; status?: string }>) {
+import { usePage } from '@inertiajs/react';
+
+export default function Edit() {
+ const page = usePage<PageProps<{ mustVerifyEmail: boolean; status?: string; shipping_addresses: ShippingAddress[] }>>();
+
+
+  const { mustVerifyEmail, status, shipping_addresses } = page.props;
+
   return (
     <AuthenticatedLayout
       header={
@@ -46,7 +51,10 @@ export default function Edit({
 
 <div className={'bg-white p-4 shadow sm:rounded-lg sm_p-8 dark:bg-gray-800'}>
 <VendorDetails/>
+ <ShippingAddresses shipping_addresses={shipping_addresses} />
 </div>
+
+
 
         </div>
       </div>

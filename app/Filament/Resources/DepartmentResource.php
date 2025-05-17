@@ -31,11 +31,11 @@ class DepartmentResource extends Resource
         return $form
             ->schema([
                 TextInput::make('name')
-                ->live(onBlur:true)
-                ->required()
-                ->afterStateUpdated(function(string $operation, $state, callable $set){
-$set('slug', Str::slug($state));
-                }),
+                    ->live(onBlur: true)
+                    ->required()
+                    ->afterStateUpdated(function (string $operation, $state, callable $set) {
+                        $set('slug', Str::slug($state));
+                    }),
                 TextInput::make('slug')->required(),
                 Checkbox::make('active')
 
@@ -47,13 +47,11 @@ $set('slug', Str::slug($state));
         return $table
             ->columns([
                 TextColumn::make('name')
-                ->sortable()
-                ->searchable()
+                    ->sortable()
+                    ->searchable()
             ])
-            ->defaultSort('created_at','desc')
-            ->filters([
-
-            ])
+            ->defaultSort('created_at', 'desc')
+            ->filters([])
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
@@ -82,8 +80,9 @@ $set('slug', Str::slug($state));
         ];
     }
 
-    public static function canViewAny():bool{
-        $user=Filament::auth()->user();
+    public static function canViewAny(): bool
+    {
+        $user = Filament::auth()->user();
 
         return $user && $user->hasRole(RolesEnum::Admin);
     }

@@ -136,12 +136,7 @@ class ProductResource extends Resource
             Tables\Columns\TextColumn::make('department.name'),
             Tables\Columns\TextColumn::make('category.name'),
             Tables\Columns\TextColumn::make('created_at')
-            ->dateTime()
-            ,
-
-
-
-
+            ->dateTime(),
 
             ])
             ->filters([
