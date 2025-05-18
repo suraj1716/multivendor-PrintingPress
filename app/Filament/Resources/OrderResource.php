@@ -23,33 +23,49 @@ class OrderResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+//         ->filters([
+//     Tables\Filters\SelectFilter::make('status')
+//         ->label('Status')
+//         ->options(
+//             collect(OrderStatusEnum::cases())
+//                 ->mapWithKeys(fn($case) => [$case->value => OrderStatusEnum::labels()[$case->value]])
+//                 ->toArray()
+//         )
+// ])
             ->columns([
                 Tables\Columns\TextColumn::make('id')
-                    ->sortable()
+                    ->sortable()  ->searchable()
                     ->label('Order ID'),
 
                 Tables\Columns\TextColumn::make('vendorUser.vendor.store_name')
                     ->label('Vendor Store'),
 
                 Tables\Columns\TextColumn::make('total_price')
-                    ->money('USD')
+                    ->money('AUD')
                     ->label('Total'),
 
+                Tables\Columns\TextColumn::make('payment_status')
+                    ->label('Payment Status')
+                    ->getStateUsing(function ($record) {
+                        return $record->vendor_subtotal ? 'paid' : 'draft';
+                    })
+                    ->sortable()
+                    ->searchable(),
 
-
-
-Tables\Columns\SelectColumn::make('status')
-    ->label('Status')
-    ->options(
-        collect(OrderStatusEnum::cases())->mapWithKeys(fn($case) => [$case->value => $case->name])->toArray()
-    )
-    ->rules(['required'])
-    ->searchable()
-    ->afterStateUpdated(function ($record, $state) {
-        $record->status = $state;
-        $record->save();
-    }),
-
+                Tables\Columns\SelectColumn::make('status')
+                    ->label('Status')
+                    ->options(
+                        collect(OrderStatusEnum::cases())
+                            ->filter(fn($case) => in_array($case->value, ['shipped', 'delivered', 'cancelled']))
+                            ->mapWithKeys(fn($case) => [$case->value => $case->name])
+                            ->toArray()
+                    )
+                    ->rules(['required'])
+                    ->searchable()
+                    ->afterStateUpdated(function ($record, $state) {
+                        $record->status = $state;
+                        $record->save();
+                    }),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime('Y-m-d H:i')
@@ -70,7 +86,7 @@ Tables\Columns\SelectColumn::make('status')
 
 
     public static function getTableQuery(): Builder
-{
-    return parent::getTableQuery()->with('vendorUser');
-}
+    {
+        return parent::getTableQuery()->with('vendorUser');
+    }
 }

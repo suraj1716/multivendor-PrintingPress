@@ -18,7 +18,11 @@ class VendorController extends Controller
 
     // VendorController profile() method
     public function profile(Request $request, Vendor $vendor)
-    {
+    {dd($vendor->status);
+  if ($vendor->status === VendorStatusEnum::Rejected->value) {
+        abort(404); // or redirect or show custom message if needed
+    }
+
         $keyword = $request->query('keyword');
 
         $products = ProductSearchService::queryWithKeyword($keyword, function ($query) use ($vendor) {
@@ -55,34 +59,43 @@ class VendorController extends Controller
     //     ]);;
     // }
 
-    public function store(Request $request)
-    {
-        $user = $request->user();
+   public function store(Request $request)
+{
+    $user = $request->user();
 
-        $request->validate(
-            [
-                'store_name' => [
-                    'required',
-                    'regex:/^[a-z0-9-]+$/',
-                    Rule::unique('vendors', 'store_name')->ignore($user->id, 'user_id'),
-
-                ],
-                'store_address' => 'nullable',
+    $request->validate(
+        [
+            'store_name' => [
+                'required',
+                'regex:/^[a-z0-9-]+$/',
+                Rule::unique('vendors', 'store_name')->ignore($user->id, 'user_id'),
             ],
-            [
-                'store_name.regex' => 'store name must only contain lowercase alphanumeric characters and dashes',
-            ]
-        );
+            'store_address' => 'nullable',
+        ],
+        [
+            'store_name.regex' => 'store name must only contain lowercase alphanumeric characters and dashes',
+        ]
+    );
 
+    // If vendor exists, update the details (even if status is pending)
+    $vendor = $user->vendor ?: new Vendor();
+    $vendor->user_id = $user->id;
+    $vendor->store_name = $request->store_name;
+    $vendor->store_address = $request->store_address;
 
-        $user = $request->user();
-        $vendor = $user->vendor ?: new Vendor();
-        $vendor->user_id = $user->id;
-        $vendor->status = VendorStatusEnum::Approved->value;
-        $vendor->store_name = $request->store_name;
-        $vendor->store_address = $request->store_address;
-        $vendor->save();
+    // Only set status to pending if it's a new vendor or was rejected
+    if (!$vendor->exists || $vendor->status === VendorStatusEnum::Rejected->value) {
+        $vendor->status = VendorStatusEnum::Pending->value;
+    }
 
+    $vendor->save();
+
+    // Assign role only if user is becoming vendor for the first time
+    if (!$user->hasRole(RolesEnum::Vendor)) {
         $user->assignRole(RolesEnum::Vendor);
     }
+}
+
+
+
 }

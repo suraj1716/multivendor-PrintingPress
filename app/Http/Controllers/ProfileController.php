@@ -24,6 +24,7 @@ class ProfileController extends Controller
         'mustVerifyEmail' => $user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail(),
         'status' => session('status'),
         'shipping_addresses' => $user->shippingAddress()->get(),
+        'vendor_status' => optional($request->user()->vendor)->status,
     ]);
 }
 
