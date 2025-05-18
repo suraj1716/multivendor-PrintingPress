@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\OrderViewResource;
+use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -23,5 +24,16 @@ public function index()
     'orders' => OrderViewResource::collection($orders),
 ]);
 }
+
+  public function show($orderId)
+    {
+  $orders = Auth::user()
+    ->orders()
+    ->with(['vendorUser.vendor', 'orderItems.product'])
+    ->latest()
+    ->get();
+
+        return new OrderViewResource($orders);
+    }
 
 }

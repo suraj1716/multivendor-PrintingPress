@@ -35,9 +35,16 @@ public function vendor(): BelongsTo
     return $this->belongsTo(Vendor::class, 'vendor_user_id', 'user_id');
 }
 
+
+
 public function vendorUser(): BelongsTo
 {
     return $this->BelongsTo(User::class,'vendor_user_id');
+}
+
+public function shippingAddress()
+{
+    return $this->belongsTo(ShippingAddress::class);
 }
 
 }
