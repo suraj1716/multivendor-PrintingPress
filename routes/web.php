@@ -36,8 +36,8 @@ Route::get('/search-suggestions', function (Request $request) {
     return response()->json($suggestions);
 });
 
-Route::get('/d/{department:slug}',[ProductController::class, 'byDepartment'])
-->name('product.byDepartment');
+Route::get('/d/{department:slug}', [ProductController::class, 'byDepartment'])
+->name('product.byDepartment');;
 
 Route::get('/seller/{vendor:store_name}',[VendorController::class, 'profile'])
 ->name('vendor.profile');

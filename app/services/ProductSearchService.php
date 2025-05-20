@@ -22,4 +22,11 @@ class ProductSearchService
 
         return $query;
     }
+     public static function search(array $filters = [])
+    {
+        return Product::query()
+            ->forWebsite()               // Step 2: Scope to current website
+            ->with(['category', 'department'])  // Step 3: Eager load relationships
+            ->filter($filters);          // Step 4: Apply dynamic filters
+    }
 }

@@ -55,7 +55,7 @@ export default function Navbar() {
 
   return (
     <>
-     <div className="navbar bg-base-100 shadow-sm sticky top-0 z-50 relative">
+      <div className="navbar bg-base-100 shadow-sm sticky top-0 z-50 relative">
         <div className="flex-1">
           <Link href="/" className="btn btn-ghost text-xl">
             SurajEcom
@@ -118,7 +118,10 @@ export default function Navbar() {
                 className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow"
               >
                 <li>
-                  <Link href={route("profile.edit")} className="justify-between">
+                  <Link
+                    href={route("profile.edit")}
+                    className="justify-between"
+                  >
                     Profile
                   </Link>
                 </li>
@@ -149,29 +152,30 @@ export default function Navbar() {
         </div>
       </div>
 
-
-
-
       {/* ================Nav For Departments================= */}
 
       <div className="navbar bg-base-100 shadow-sm  top-0 z-50 ">
         <div className="navbar-center hidden lg:flex">
           <ul className="menu menu-horizontal menu-dropdown dropdown-hover px-1 z-20 py-0">
-           {departments.map((department) => {
-  const isActive = route().current('product.byDepartment', department.slug);
+            {departments.map((department) => {
+              const isActive = route().current(
+                "product.byDepartment",
+                department.slug
+              );
 
-  return (
-    <li key={department.id}>
-      <Link
-        href={route("product.byDepartment", department.slug)}
-        className={isActive ? "bg-primary text-white font-bold" : ""}
-      >
-        {department.name}
-      </Link>
-    </li>
-  );
-})}
-
+              return (
+                <li key={department.id}>
+                  <Link
+                    href={route("product.byDepartment", department.slug)}
+                    className={
+                      isActive ? "bg-primary text-white font-bold" : ""
+                    }
+                  >
+                    {department.name}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>

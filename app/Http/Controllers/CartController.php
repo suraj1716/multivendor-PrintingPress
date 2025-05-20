@@ -26,9 +26,11 @@ class CartController extends Controller
     public function index(CartService $cartService, Request $request)
     {
         $user=Auth::user();
-      $shippingAddresses = ShippingAddress::where('user_id', $user->id)
-
+        if ($user){    $shippingAddresses = ShippingAddress::where('user_id', $user->id)
     ->get();
+
+        }else{ $shippingAddresses = [];}
+
         //  dd(Cookie::get('cartItems'));
         return Inertia::render('Cart/Index', [
             'cartItems' => $cartService->getCartItemsGrouped(),

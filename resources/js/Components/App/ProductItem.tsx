@@ -33,14 +33,22 @@ export default function ProductItem({ product }: Props) {
         </figure>
         <div className="card-body">
           <h2 className="card-title">{product.title}</h2>
-          <p>
-           <Link href={route('vendor.profile', product.user.store_name)} className="hover:underline">
-            {product.user.name}
-          </Link>&nbsp;
-                      in <Link href={route('product.byDepartment',product.department.slug)} className="hover:underline">{product.department.name} </Link>;
+         <p>
+  <Link
+    href={route('vendor.profile', product.user?.store_name ?? '')}
+    className="hover:underline"
+  >
+    {product.user?.name ?? 'Unknown Vendor'}
+  </Link>
+  &nbsp; in&nbsp;
+<Link
+  href={route('product.byDepartment', product.department?.slug ?? '')}
+  className="hover:underline"
+>
+  {product.department?.name ?? 'Unknown Department'}
+</Link>
+</p>
 
-
-          </p>
         </div>
       </Link>
 

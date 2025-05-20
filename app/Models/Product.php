@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Image\Manipulations;
@@ -19,7 +20,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Product extends Model implements HasMedia
 {
-
+use HasFactory;
     use InteractsWithMedia;
 
     // protected $casts = [
@@ -43,12 +44,17 @@ class Product extends Model implements HasMedia
     }
 
 
-    public function scopeVendorApproved(Builder $query)
-    {
-        return $query->join('vendors', 'vendors.user_id', '=', 'products.created_by')
-            ->where('vendors.status', VendorStatusEnum::Approved->value);
-    }
-
+    // public function scopeVendorApproved(Builder $query)
+    // {
+    //     return $query->join('vendors', 'vendors.user_id', '=', 'products.created_by')
+    //         ->where('vendors.status', VendorStatusEnum::Approved->value);
+    // }
+public function scopeVendorApproved($query)
+{
+    return $query->whereHas('vendor', function ($q) {
+        $q->where('status', 'approved');
+    });
+}
 
 
 // In Product.php model
@@ -102,7 +108,7 @@ public function scopeSearchKeyword($query, $keyword)
     public function department(): BelongsTo
     {
 
-        return $this->belongsTo(Department::class);
+        return $this->belongsTo(Department::class,'department_id');
     }
     public function category(): BelongsTo
     {
@@ -214,4 +220,46 @@ public function scopeSearchKeyword($query, $keyword)
 
         return $this->getFirstMediaUrl($collectionName, $conversion);
     }
+
+
+
+
+public function scopeFilterApproved($query, $departmentIds = null, $categoryIds = null, $price = null)
+{
+    if (is_array($departmentIds) && count($departmentIds) > 0) {
+        $query->whereIn('department_id', $departmentIds);
+    } elseif ($departmentIds && $departmentIds != 0) {
+        $query->where('department_id', $departmentIds);
+    }
+
+    if (is_array($categoryIds) && count($categoryIds) > 0) {
+        $query->whereIn('category_id', $categoryIds);
+    } elseif ($categoryIds && $categoryIds != 0) {
+        $query->where('category_id', $categoryIds);
+    }
+
+    if ($price) {
+        $query->where('price', '<=', $price);
+    }
+
+    return $query->where('status', 'published')
+        ->whereHas('vendor', function ($q) {
+            $q->where('status', 'approved');
+        });
+}
+
+
+
+
+
+public function vendor()
+{
+   return $this->belongsTo(Vendor::class, 'created_by', 'user_id');
+}
+
+public function products()
+{
+    return $this->hasMany(Product::class, 'category_id');
+}
+
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Enums\RolesEnum;
+use App\Enums\VendorStatusEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\services\CartService;
@@ -15,9 +16,6 @@ use Inertia\Response;
 
 class AuthenticatedSessionController extends Controller
 {
-    /**
-     * Display the login view.
-     */
     public function create(): Response
     {
         return Inertia::render('Auth/Login', [
@@ -26,40 +24,49 @@ class AuthenticatedSessionController extends Controller
         ]);
     }
 
-    /**
-     * Handle an incoming authentication request.
-     */
     public function store(LoginRequest $request, CartService $cartService): RedirectResponse
     {
-        $request->authenticate();
 
+        $request->authenticate();
         $request->session()->regenerate();
 
-        $user=Auth::user();
-$route='/';
-if($user->hasAnyRole([RolesEnum::Admin, RolesEnum::Vendor]))
-{
-    $cartService->moveCartItemsToDatabase($user->id);
-   return redirect()->route('filament.admin.pages.dashboard');
+        $user = Auth::user();
+        $cartService->moveCartItemsToDatabase($user->id);
 
-}
-else{
-    $route=route('dashboard',absolute:false);
-}
 
-$cartService->moveCartItemsToDatabase($user->id);
-return redirect()->intended($route);
+        if ($user->hasRole(RolesEnum::Admin)) {
+            return redirect()->route('filament.admin.pages.dashboard');
+        }
+
+        if ($user->hasRole(RolesEnum::Vendor)) {
+            $vendor = $user->vendor;
+// dd($vendor->status);
+            if (!$vendor) {
+                return redirect()->route('dashboard')->with('status', 'No vendor profile found.');
+            }
+
+            if ($vendor->status === VendorStatusEnum::Approved->value) {
+                return redirect()->route('filament.admin.pages.dashboard');
+            }
+
+            // Show a message based on the status
+            $message = match ($vendor->status) {
+                VendorStatusEnum::Rejected->value => 'Your vendor application was rejected.',
+                VendorStatusEnum::Pending->value => 'Your vendor account is still pending approval.',
+                default => 'Unknown vendor status.',
+            };
+
+            return redirect()->route('dashboard')->with('status', $message);
+        }
+
+        // For other users
+        return redirect()->intended(route('dashboard', absolute: false));
     }
 
-    /**
-     * Destroy an authenticated session.
-     */
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('web')->logout();
-
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
 
         return redirect('/');

@@ -5,19 +5,16 @@ namespace App\Http\Controllers;
 use App\Http\Resources\DepartmentResource;
 use App\Http\Resources\ProductResource;
 use App\Http\Resources\ProductListResource;
+use App\Models\Category;
 use App\Models\Department;
 use App\Models\Product;
 use App\services\ProductSearchService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class ProductController extends Controller
 {
-
-
-
-
-
 
 // HomeController or wherever your home() method is
 public function home(Request $request)
@@ -94,27 +91,53 @@ $products = ProductSearchService::queryWithKeyword($keyword)
         ]);
     }
 
-    public function byDepartment(Request $request, Department $department)
-    {
-        abort_unless($department->active, 404);
 
-        $keyword = $request->query('keyword');
 
-        $products = Product::query()
-            ->forWebsite()
-            ->where('department_id', $department->id)
-            ->when($keyword, function ($query, $keyword) {
-                $query->where(function ($query) use ($keyword) {
-                    $query->where('title', 'LIKE', "%{$keyword}%")
-                        ->orWhere('description', 'LIKE', "%{$keyword}%");
-                });
-            })
-            ->paginate();
+public function byDepartment(Request $request, $slug)
+{
+    $department = Department::with('categories')->where('slug', $slug)->firstOrFail();
 
-        return Inertia::render('Department/Index', [
-            'department' => new DepartmentResource($department),
-            'products' => ProductListResource::collection($products),
-            'keyword' => $keyword,
-        ]);
+    $filters = [
+        'departmentIds' => [$department->id],
+        'categoryIds' => $request->filled('category_id') ? [$request->integer('category_id')] : null,
+        'price' => $request->float('max_price') ?: null,
+    ];
+
+    $keyword = $request->query('keyword');
+
+    $query = Product::with(['user.vendor'])
+        ->filterApproved(...array_values($filters));
+
+    if ($keyword) {
+        $query->where('title', 'like', "%$keyword%");
     }
+
+    $products = $query->paginate(12)->withQueryString();
+
+    $vendor = optional($products->first()?->user)->vendor;
+
+    if ($vendor) {
+        Log::info("Vendor found for department: " . $vendor->store_name);
+    } else {
+        Log::warning("No products found for department: {$slug}, vendor is null");
+    }
+
+    return Inertia::render('Department/Index', [
+    'department' => $department,
+    'products' => ProductListResource::collection($products),
+    'categories' => $department->categories,
+    'filters' => [
+        'category_id' => $request->query('category_id'),
+        'max_price' => $request->query('max_price'),
+        'sort_by' => $request->query('sort_by'),
+        'keyword' => $request->query('keyword'),
+    ],
+    'appName' => config('app.name'),
+]);
+
+}
+
+
+
+
 }

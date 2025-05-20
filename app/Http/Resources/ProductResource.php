@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Filament\Resources\VendorResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -23,6 +24,7 @@ class ProductResource extends JsonResource
             'image' => $this->getFirstMediaUrl('images'),
             'slug' => $this->slug,
             'quantity' => $this->quantity,
+            'vendor' => new VendorResource($this->whenLoaded('vendor')),
             'images' => $this->getMedia('images')->map(function ($image) {
                 return [
                     'id' => $image->id,

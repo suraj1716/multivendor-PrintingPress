@@ -35,5 +35,17 @@ public function vendorUser(): BelongsTo
 
     // return $this->belongsTo(User::class, 'vendor_user_id');
 }
+public function products()
+{
+    return $this->hasMany(\App\Models\Product::class, 'created_by', 'user_id');
+}
+public function getRouteKeyName()
+{
+    return 'store_name';
+}
 
+public function departments()
+{
+    return $this->hasMany(Department::class, 'user_id', 'user_id');
+}
 }
