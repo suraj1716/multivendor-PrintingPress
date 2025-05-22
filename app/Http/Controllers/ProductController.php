@@ -16,22 +16,26 @@ use Inertia\Inertia;
 class ProductController extends Controller
 {
 
-// HomeController or wherever your home() method is
-public function home(Request $request)
-{
-    $keyword = $request->query('keyword');
-
-  // home method
-$products = ProductSearchService::queryWithKeyword($keyword)
-    ->paginate(12);
-
-    return Inertia::render('Home', [
-        'products' => ProductListResource::collection($products),
-        'keyword' => $keyword,
-    ]);
-}
 
 
+    public function home(Request $request)
+    {
+        $keyword = $request->query('keyword');
+
+        // Grab every department that actually has products
+        $departments = Department::whereHas('categories.products', fn($q) => $q->filterApproved())
+            ->with(['categories' => fn($q) => $q->whereHas('products')])
+            ->get();
+
+        $products = ProductSearchService::queryWithKeyword($keyword)->paginate(12);
+
+        return Inertia::render('Home', [
+            'products'    => ProductListResource::collection($products),
+            'keyword'     => $keyword,
+            'departments' => $departments,
+            'department'  => null,          // No single department selected
+        ]);
+    }
 
 
 
@@ -39,27 +43,29 @@ $products = ProductSearchService::queryWithKeyword($keyword)
 
 
 
-//   public function home(Request $request)
-// {
-//     $keyword = $request->query('keyword');
 
-//     $query = Product::query()
-//         ->forWebsite() // assuming this is a global scope or local scope you want on all queries
-//         ->with(['variationTypes', 'variationTypes.options', 'variations']);
 
-//     if ($keyword) {
-//         $query->where(function ($q) use ($keyword) {
-//             $q->where('title', 'LIKE', "%{$keyword}%")
-//               ->orWhere('description', 'LIKE', "%{$keyword}%");
-//         });
-//     }
+    //   public function home(Request $request)
+    // {
+    //     $keyword = $request->query('keyword');
 
-//     $products = $query->paginate(12);
+    //     $query = Product::query()
+    //         ->forWebsite() // assuming this is a global scope or local scope you want on all queries
+    //         ->with(['variationTypes', 'variationTypes.options', 'variations']);
 
-//     return Inertia::render('Home', [
-//         'products' => ProductListResource::collection($products),
-//     ]);
-// }
+    //     if ($keyword) {
+    //         $query->where(function ($q) use ($keyword) {
+    //             $q->where('title', 'LIKE', "%{$keyword}%")
+    //               ->orWhere('description', 'LIKE', "%{$keyword}%");
+    //         });
+    //     }
+
+    //     $products = $query->paginate(12);
+
+    //     return Inertia::render('Home', [
+    //         'products' => ProductListResource::collection($products),
+    //     ]);
+    // }
 
 
 
@@ -93,51 +99,173 @@ $products = ProductSearchService::queryWithKeyword($keyword)
 
 
 
-public function byDepartment(Request $request, $slug)
-{
-    $department = Department::with('categories')->where('slug', $slug)->firstOrFail();
+    public function byDepartment(Request $request, $slug)
+    {
+        $department = Department::where('slug', $slug)->firstOrFail();
 
-    $filters = [
-        'departmentIds' => [$department->id],
-        'categoryIds' => $request->filled('category_id') ? [$request->integer('category_id')] : null,
-        'price' => $request->float('max_price') ?: null,
-    ];
+        $categoryId = $request->integer('category_id');
+        $maxPrice = $request->float('max_price');
+        $keyword = $request->query('keyword');
+        $sortBy = $request->query('sort_by');
 
-    $keyword = $request->query('keyword');
+        // Product query filtered by department and optionally category, keyword, max price
+        $query = Product::query()
+            ->whereHas('category', function ($q) use ($department) {
+                $q->where('department_id', $department->id);
+            })
+            ->filterApproved(
+                [$department->id],
+                $categoryId ? [$categoryId] : null,
+                $maxPrice
+            )
+            ->with(['category', 'department']);
 
-    $query = Product::with(['user.vendor'])
-        ->filterApproved(...array_values($filters));
+        if ($keyword) {
+            $query->where('title', 'like', "%{$keyword}%");
+        }
 
-    if ($keyword) {
-        $query->where('title', 'like', "%$keyword%");
+        // Sorting logic
+        if ($sortBy) {
+            switch ($sortBy) {
+                case 'price_asc':
+                    $query->orderBy('price', 'asc');
+                    break;
+                case 'price_desc':
+                    $query->orderBy('price', 'desc');
+                    break;
+                case 'newest':
+                    $query->orderBy('created_at', 'desc');
+                    break;
+                default:
+                    $query->latest();
+            }
+        } else {
+            $query->latest();
+        }
+
+        $products = $query->paginate(12)->withQueryString();
+
+        // Get categories for selected department that have products
+        $categories = $department->categories()
+            ->whereHas('products', function ($q) use ($categoryId, $maxPrice, $keyword, $department) {
+                $q->filterApproved([$department->id], $categoryId ? [$categoryId] : null, $maxPrice);
+                if ($keyword) {
+                    $q->where('title', 'like', "%{$keyword}%");
+                }
+            })
+            ->get();
+
+
+
+
+
+        // // Get all departments that have products (to filter out empty ones)
+        $departments = Department::whereHas('categories.products', function ($query) {
+            $query->filterApproved();  // only categories with approved products
+        })
+            ->withCount(['products as products_count' => function ($query) {
+                $query->filterApproved();  // count only approved products per department
+            }])
+            ->with(['categories' => function ($query) {
+                $query->whereHas('products', function ($q2) {
+                    $q2->filterApproved();  // eager load only categories with approved products
+                });
+            }])
+            ->get();
+
+
+
+
+        if ($categories->isEmpty()) {
+            Log::warning("No categories with products found for department '{$slug}'.");
+        } else {
+            foreach ($categories as $cat) {
+                Log::info("Category with products found:", [
+                    'category_id' => $cat->id,
+                    'category_name' => $cat->name,
+                ]);
+            }
+        }
+
+        return Inertia::render('Department/Index', [
+            'department' => $department,
+            'products' => ProductListResource::collection($products),
+            'categories' => $categories,
+            'departments' => $departments,
+            'filters' => [
+                'category_id' => $categoryId,
+                'max_price' => $maxPrice,
+                'sort_by' => $sortBy,
+                'keyword' => $keyword,
+                'department_id' => $department->id,
+            ],
+            'appName' => config('app.name'),
+        ]);
     }
 
-    $products = $query->paginate(12)->withQueryString();
 
-    $vendor = optional($products->first()?->user)->vendor;
 
-    if ($vendor) {
-        Log::info("Vendor found for department: " . $vendor->store_name);
-    } else {
-        Log::warning("No products found for department: {$slug}, vendor is null");
+    public function search(Request $request)
+    {
+        // Get departments that have categories with products (filtered by forWebsite)
+        $departments = Department::whereHas('categories.products', function ($query) {
+            $query->forWebsite();
+        })
+            ->with(['categories' => function ($query) {
+                $query->whereHas('products', function ($q) {
+                    $q->forWebsite();
+                });
+            }])
+            ->get();
+
+        $keyword = $request->query('keyword');
+        $categoryId = $request->query('category_id');
+        $maxPrice = $request->query('max_price');
+        $sortBy = $request->query('sort_by');
+
+        $query = Product::query()
+            ->forWebsite()
+            ->with(['user.vendor', 'department']); // eager load user and vendor
+
+        if ($keyword) {
+            $query->where('title', 'LIKE', "%{$keyword}%");
+        }
+        if ($categoryId) {
+            $query->where('category_id', $categoryId);
+        }
+        if ($maxPrice) {
+            $query->where('price', '<=', $maxPrice);
+        }
+        if ($sortBy) {
+            if ($sortBy === 'price_asc') {
+                $query->orderBy('price', 'asc');
+            } elseif ($sortBy === 'price_desc') {
+                $query->orderBy('price', 'desc');
+            } elseif ($sortBy === 'newest') {
+                $query->orderBy('created_at', 'desc');
+            }
+        }
+
+        $products = $query->paginate(12)->withQueryString();
+
+        // Optional: debugging info
+        // foreach ($products as $product) {
+        //     logger()->info('Product vendor debug', [
+        //         'product_id' => $product->id,
+        //         'product_title' => $product->title,
+        //         'vendor' => $product->user->vendor ? $product->user->vendor->toArray() : 'No vendor loaded',
+        //     ]);
+        // }
+
+        return Inertia::render('Shop/ListProducts', [
+            'products' => ProductListResource::collection($products),
+            'filters' => [
+                'keyword' => $keyword,
+                'category_id' => $categoryId,
+                'max_price' => $maxPrice,
+                'sort_by' => $sortBy,
+            ],
+            'departments' => $departments,  // send filtered departments only
+        ]);
     }
-
-    return Inertia::render('Department/Index', [
-    'department' => $department,
-    'products' => ProductListResource::collection($products),
-    'categories' => $department->categories,
-    'filters' => [
-        'category_id' => $request->query('category_id'),
-        'max_price' => $request->query('max_price'),
-        'sort_by' => $request->query('sort_by'),
-        'keyword' => $request->query('keyword'),
-    ],
-    'appName' => config('app.name'),
-]);
-
-}
-
-
-
-
 }

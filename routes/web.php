@@ -8,10 +8,17 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ShippingAddressController;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\VendorController;
+use App\Http\Resources\ProductListResource;
+use App\Models\Product;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+
+
+
 
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -25,22 +32,36 @@ Route::delete('/shipping-addresses/{id}', [ShippingAddressController::class, 'de
 Route::get('/', [ProductController::class, 'home'])->name('dashboard');
 Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('product.show');
 
+
+
 Route::get('/search-suggestions', function (Request $request) {
     $keyword = $request->query('keyword');
-    $suggestions = \App\Models\Product::query()
+
+    $titles = Product::query()
         ->forWebsite()
         ->where('title', 'LIKE', "%{$keyword}%")
         ->limit(10)
-        ->pluck('title');
+        ->pluck('title'); // Only return the title field as an array
 
-    return response()->json($suggestions);
+    return response()->json($titles);
 });
 
+
 Route::get('/d/{department:slug}', [ProductController::class, 'byDepartment'])
-->name('product.byDepartment');;
+->name('product.byDepartment');
+
+Route::get('/shop', [ProductController::class, 'search'])->name('shop.search');
 
 Route::get('/seller/{vendor:store_name}',[VendorController::class, 'profile'])
 ->name('vendor.profile');
+
+
+Route::get('/check-auth', function () {
+    return [
+        'auth_id' => Auth::id(),
+        'user' => Auth::user(),
+    ];
+});
 
 Route::controller(CartController::class)->group(function () {
     Route::get('/cart', 'index')->name('cart.index');

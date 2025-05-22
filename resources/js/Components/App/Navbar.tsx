@@ -1,10 +1,12 @@
 import { Link, useForm, usePage } from "@inertiajs/react";
-import React, { useState, useEffect, FormEventHandler } from "react";
+import React, { useState, FormEventHandler } from "react";
 import MiniCartDropdown from "./MiniCartDropdown";
-import { PageProps } from "@/types";
+import { Department, PageProps } from "@/types";
+import { Search } from "lucide-react";
 
 export default function Navbar() {
-  const { auth, departments, keyword } =
+const { dpts } = usePage().props as { dpts: Department[] };
+  const { auth, keyword } =
     usePage<PageProps<{ keyword: string }>>().props;
   const { user } = auth;
 
@@ -12,14 +14,11 @@ export default function Navbar() {
     keyword: keyword || "",
   });
 
-  const { url } = usePage();
-
-  // State to hold suggestions
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  // Debounce timer id
-  let debounceTimeout: NodeJS.Timeout;
+  const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(
+    null
+  );
 
-  // Fetch suggestions from server
   const fetchSuggestions = (searchTerm: string) => {
     if (!searchTerm) {
       setSuggestions([]);
@@ -28,7 +27,7 @@ export default function Navbar() {
 
     fetch(`/search-suggestions?keyword=${encodeURIComponent(searchTerm)}`)
       .then((res) => res.json())
-      .then((data) => {
+      .then((data: string[]) => {
         setSuggestions(data);
       })
       .catch(() => {
@@ -36,22 +35,33 @@ export default function Navbar() {
       });
   };
 
-  // Debounced input change handler
   const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     SearchForm.setData("keyword", value);
 
-    clearTimeout(debounceTimeout);
-    debounceTimeout = setTimeout(() => {
+    if (debounceTimeout) clearTimeout(debounceTimeout);
+
+    const timeout = setTimeout(() => {
       fetchSuggestions(value);
     }, 300);
+
+    setDebounceTimeout(timeout);
   };
 
   const onSubmit: FormEventHandler = (e) => {
     e.preventDefault();
-    setSuggestions([]); // Clear suggestions on submit
-    SearchForm.get(url);
+    setSuggestions([]); // Clear suggestions
+
+    SearchForm.get("/shop", {
+      data: {
+        category_id: "",
+        keyword: SearchForm.data.keyword,
+        max_price: "",
+        sort_by: "",
+      },
+    });
   };
+
 
   return (
     <>
@@ -64,7 +74,7 @@ export default function Navbar() {
 
         <div className="join flex-1 relative">
           <form onSubmit={onSubmit} className="join flex-1 flex flex-col">
-            <div className="flex w-full">
+            <div className="flex w-full pr-10">
               <input
                 value={SearchForm.data.keyword}
                 onChange={onInputChange}
@@ -72,8 +82,8 @@ export default function Navbar() {
                 placeholder="Search"
                 autoComplete="off"
               />
-              <button type="submit" className="btn join-item">
-                Search
+              <button type="submit" className="btn join-item px-3">
+                <Search className="w-4 h-4" />
               </button>
             </div>
 
@@ -85,7 +95,7 @@ export default function Navbar() {
                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                   >
                     <Link
-                      href={`/?keyword=${encodeURIComponent(suggestion)}`}
+                      href={`/shop?keyword=${encodeURIComponent(suggestion)}`}
                       onClick={() => setSuggestions([])}
                     >
                       {suggestion}
@@ -99,7 +109,7 @@ export default function Navbar() {
 
         <div className="flex-none gap-8">
           <MiniCartDropdown />
-          {user && (
+          {user ? (
             <div className="dropdown dropdown-end">
               <div
                 tabIndex={0}
@@ -137,9 +147,7 @@ export default function Navbar() {
                 </li>
               </ul>
             </div>
-          )}
-
-          {!user && (
+          ) : (
             <>
               <Link href={route("login")} className="btn">
                 Login
@@ -152,31 +160,31 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* ================Nav For Departments================= */}
-
-      <div className="navbar bg-base-100 shadow-sm  top-0 z-50 ">
+      {/* Departments Navbar */}
+      <div className="navbar bg-base-100 shadow-sm top-0 z-50">
         <div className="navbar-center hidden lg:flex">
-          <ul className="menu menu-horizontal menu-dropdown dropdown-hover px-1 z-20 py-0">
-            {departments.map((department) => {
-              const isActive = route().current(
-                "product.byDepartment",
-                department.slug
-              );
+          <h1 className="pr-7 pl-4">Shop by Departments:</h1>
+        <ul className="menu menu-horizontal menu-dropdown dropdown-hover px-1 z-20 py-0">
+ {dpts.map((department) => {
+  console.log(`Checking ${department.name} - productsCount: ${department.productsCount}`);
 
-              return (
-                <li key={department.id}>
-                  <Link
-                    href={route("product.byDepartment", department.slug)}
-                    className={
-                      isActive ? "bg-primary text-white font-bold" : ""
-                    }
-                  >
-                    {department.name}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+  if (department.productsCount === 0) return null; // 👈 Skip rendering
+
+  const isActive = route().current("product.byDepartment", department.slug);
+
+  return (
+    <li key={department.id}>
+      <Link
+        href={route("product.byDepartment", department.slug)}
+        className={isActive ? "bg-primary text-white font-bold" : ""}
+      >
+        {department.name}
+      </Link>
+    </li>
+  );
+})}
+
+</ul>
         </div>
       </div>
     </>

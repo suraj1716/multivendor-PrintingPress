@@ -227,9 +227,13 @@ public function scopeSearchKeyword($query, $keyword)
 public function scopeFilterApproved($query, $departmentIds = null, $categoryIds = null, $price = null)
 {
     if (is_array($departmentIds) && count($departmentIds) > 0) {
-        $query->whereIn('department_id', $departmentIds);
+        $query->whereHas('category', function ($q) use ($departmentIds) {
+            $q->whereIn('department_id', $departmentIds);
+        });
     } elseif ($departmentIds && $departmentIds != 0) {
-        $query->where('department_id', $departmentIds);
+        $query->whereHas('category', function ($q) use ($departmentIds) {
+            $q->where('department_id', $departmentIds);
+        });
     }
 
     if (is_array($categoryIds) && count($categoryIds) > 0) {
@@ -257,9 +261,16 @@ public function vendor()
    return $this->belongsTo(Vendor::class, 'created_by', 'user_id');
 }
 
-public function products()
-{
-    return $this->hasMany(Product::class, 'category_id');
-}
+// public function products()
+// {
+//     return $this->hasManyThrough(
+//         Product::class,
+//         Category::class,
+//         'department_id', // Foreign key on categories table...
+//         'category_id',   // Foreign key on products table...
+//                  // Local key on departments table...
+//         'id'             // Local key on categories table...
+//     );
+// }
 
 }

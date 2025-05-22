@@ -14,6 +14,7 @@ class OrderController extends Controller
 
 public function index()
 {
+
     $orders = Auth::user()
         ->orders()
         ->with(['vendorUser', 'orderItems.product'])

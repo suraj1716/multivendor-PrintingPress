@@ -5,12 +5,9 @@ import ProductItem from "@/Components/App/ProductItem";
 import { PageProps, PaginationProps, Product, Department } from "@/types";
 import { PlusCircle, MinusCircle } from "lucide-react";
 
-
-
-type Props = PageProps<{
+type ProfileProps = PageProps<{
   products: PaginationProps<Product>;
   departments: Department[];
-  department: Department;
   filters: {
     department_id: string | null;
     category_id: string | null;
@@ -19,9 +16,11 @@ type Props = PageProps<{
   };
 }>;
 
-const DEFAULT_MAX_PRICE = 1000;
-
-export default function Index({ department,products, departments, filters }: Props) {
+export default function ListProducts({
+  products,
+  departments,
+  filters,
+}: ProfileProps) {
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(
     filters.department_id
   );
@@ -29,7 +28,7 @@ export default function Index({ department,products, departments, filters }: Pro
     filters.category_id
   );
   const [maxPrice, setMaxPrice] = useState<number>(
-    filters.max_price ? parseInt(filters.max_price) : DEFAULT_MAX_PRICE
+    filters.max_price ? parseInt(filters.max_price) : 1000
   );
   const [sortBy, setSortBy] = useState<string>(filters.sort_by || "default");
   const [expandedDepartments, setExpandedDepartments] = useState<string[]>([]);
@@ -40,14 +39,9 @@ export default function Index({ department,products, departments, filters }: Pro
     );
   };
 
-  const handleApplyFilters = () => {
-    const selectedDepartmentSlug =
-      departments.find((d) => d.id.toString() === selectedDepartment)?.slug;
-
-    if (!selectedDepartmentSlug) return;
-
+  const handleFilterChange = () => {
     router.get(
-      route("product.byDepartment", selectedDepartmentSlug),
+      route("shop.search"),
       {
         department_id: selectedDepartment,
         category_id: selectedCategory,
@@ -62,29 +56,6 @@ export default function Index({ department,products, departments, filters }: Pro
   };
 
   const handleResetFilters = () => {
-    if (!selectedDepartment) return;
-
-    const departmentSlug = departments.find(
-      (d) => d.id.toString() === selectedDepartment
-    )?.slug;
-
-    if (!departmentSlug) return;
-
-    setSelectedCategory(null);
-    setMaxPrice(DEFAULT_MAX_PRICE);
-    setSortBy("default");
-
-    router.get(
-      route("product.byDepartment", departmentSlug),
-      {},
-      {
-        preserveScroll: true,
-        preserveState: true,
-      }
-    );
-  };
-
-  const ShowAllProducts = () => {
     setSelectedDepartment(null);
     setSelectedCategory(null);
     setExpandedDepartments([]);
@@ -92,31 +63,47 @@ export default function Index({ department,products, departments, filters }: Pro
     setSortBy("default");
 
     // Fetch all products with no filters
-    router.get(route("shop.search"), {}, {
-      preserveState: true,
-      preserveScroll: true,
-    });
+    router.get(
+      route("shop.search"),
+      {},
+      {
+        preserveState: true,
+        preserveScroll: true,
+      }
+    );
   };
+  const DEFAULT_MAX_PRICE = 5000;
+
+   const ShowAllProducts = () => {
+      setSelectedDepartment(null);
+      setSelectedCategory(null);
+      setExpandedDepartments([]);
+      setMaxPrice(DEFAULT_MAX_PRICE);
+      setSortBy("default");
+
+      // Fetch all products with no filters
+      router.get(route("shop.search"), {}, {
+        preserveState: true,
+        preserveScroll: true,
+      });
+    };
 
   return (
     <AuthenticatedLayout>
-      <Head title="Product List" />
+      <Head title="Shop" />
 
       <div className="bg-gray-200 py-10 text-center">
-        <h1 className="text-3xl font-semibold text-gray-800">
-          Products in Department: {department.name}
-        </h1>
+        <h1 className="text-3xl font-semibold text-gray-800">Shop</h1>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 p-6">
         {/* Filters */}
         <aside className="w-full lg:w-1/4 bg-white shadow rounded p-4">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">Filters</h2>
             <button
               className="ml-2 bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
-              onClick={ShowAllProducts}
-              type="button"
+              onClick={handleResetFilters}
             >
               All Products
             </button>
@@ -124,7 +111,9 @@ export default function Index({ department,products, departments, filters }: Pro
 
           {/* Department Filter */}
           <div className="mb-6">
-            <h3 className="text-sm font-medium mb-2">Departments & Categories</h3>
+            <h3 className="text-sm font-medium mb-2">
+              Departments & Categories
+            </h3>
             <ul className="text-sm space-y-1">
               {departments.map((department) => {
                 const isExpanded = expandedDepartments.includes(
@@ -137,9 +126,9 @@ export default function Index({ department,products, departments, filters }: Pro
                       <button
                         type="button"
                         onClick={() => {
-                          setSelectedDepartment(department.id.toString());
-                          setSelectedCategory(null);
                           toggleDepartment(department.id.toString());
+                          setSelectedDepartment(department.id.toString());
+                          setSelectedCategory(null); // reset category on new department select
                         }}
                         className="font-semibold text-left w-full"
                       >
@@ -148,8 +137,14 @@ export default function Index({ department,products, departments, filters }: Pro
                       <button
                         type="button"
                         className="ml-2"
-                        onClick={() => toggleDepartment(department.id.toString())}
-                        aria-label={isExpanded ? "Collapse" : "Expand"}
+                        onClick={() =>
+                          toggleDepartment(department.id.toString())
+                        }
+                        aria-label={
+                          isExpanded
+                            ? "Collapse department"
+                            : "Expand department"
+                        }
                       >
                         {isExpanded ? (
                           <MinusCircle size={20} className="text-gray-600" />
@@ -159,6 +154,7 @@ export default function Index({ department,products, departments, filters }: Pro
                       </button>
                     </div>
 
+                    {/* Show categories if expanded */}
                     {isExpanded && (
                       <ul className="ml-4 mt-1 space-y-1">
                         {department.categories.map((category) => (
@@ -169,13 +165,11 @@ export default function Index({ department,products, departments, filters }: Pro
                                 name="category"
                                 value={category.id}
                                 checked={
-                                  selectedCategory === category.id.toString() &&
-                                  selectedDepartment === department.id.toString()
+                                  selectedCategory === category.id.toString()
                                 }
-                                onChange={() => {
-                                  setSelectedDepartment(department.id.toString());
-                                  setSelectedCategory(category.id.toString());
-                                }}
+                                onChange={() =>
+                                  setSelectedCategory(category.id.toString())
+                                }
                               />
                               <span>{category.name}</span>
                             </label>
@@ -218,17 +212,17 @@ export default function Index({ department,products, departments, filters }: Pro
             </select>
           </div>
 
-          {/* Apply + Reset Buttons */}
-          <div className="flex flex-col gap-2">
+          {/* Action Buttons */}
+          <div className="space-y-2">
             <button
               className="w-full bg-blue-600 text-white py-2 rounded"
-              onClick={handleApplyFilters}
+              onClick={handleFilterChange}
             >
               Apply Filters
             </button>
 
             <button
-              className="w-full bg-gray-300 text-gray-800 py-2 rounded"
+              className="w-full bg-gray-100 text-gray-700 py-2 rounded border border-gray-300"
               onClick={handleResetFilters}
             >
               Reset Filters
@@ -254,7 +248,7 @@ export default function Index({ department,products, departments, filters }: Pro
           <div className="mt-6 flex justify-center space-x-2">
             {products.meta.links.map((link, index) =>
               link.url ? (
-                <a
+                <Link
                   key={index}
                   href={link.url}
                   className={`px-3 py-1 border rounded ${
@@ -262,12 +256,13 @@ export default function Index({ department,products, departments, filters }: Pro
                       ? "bg-blue-600 text-white"
                       : "bg-white text-gray-700"
                   }`}
-                  dangerouslySetInnerHTML={{ __html: link.label }}
-                />
+                >
+                  {link.label.replace("&laquo;", "«").replace("&raquo;", "»")}
+                </Link>
               ) : (
                 <span
                   key={index}
-                  className="px-3 py-1 border rounded text-gray-400"
+                  className="px-3 py-1 border rounded text-gray-400 cursor-not-allowed"
                   dangerouslySetInnerHTML={{ __html: link.label }}
                 />
               )

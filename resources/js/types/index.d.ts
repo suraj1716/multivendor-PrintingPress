@@ -47,6 +47,7 @@ export type Product = {
         id: number;
         name: string;
         created_at: string;
+        products_count?: number;
     }
     quantity: number;
     user : {
@@ -142,7 +143,8 @@ time:number
     totalQuantity: number;
     totalPrice: number;
     miniCartItems: CartItem[];
-    departments:Department[]
+    departments:Department[];
+    dpts:Department[];
 };
 
 export type OrderItem={
@@ -187,7 +189,8 @@ export type Vendor={
 
 export type Category={
   id:number,
-  name:string
+  name:string,
+   products_count: number;
 }
 
 export type Department={
@@ -196,5 +199,35 @@ export type Department={
   slug:string,
   meta_title:string,
   meta_description:string,
-  categories:Category[]
+  categories:Category[],
+   productsCount: number;
 }
+
+export type dpts={
+  id:number,
+  name:string,
+  slug:string,
+  meta_title:string,
+  meta_description:string,
+  categories:Category[],
+   productsCount: number;
+}
+
+
+export type ProductListItem = {
+  id: number;
+  title: string;
+  price: number;
+  image: string;
+  slug: string;
+  user: {
+    id: number;
+    name: string;
+    store_name: string;
+  };
+  department: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+};

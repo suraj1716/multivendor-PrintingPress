@@ -21,4 +21,27 @@ class Department extends Model
         return $query->where('active', true);
 
     }
+
+
+    public function scopeWithProducts($query)
+{
+    return $query->whereHas('categories.products')
+        ->with(['categories' => function ($q) {
+            $q->whereHas('products');
+        }]);
+}
+
+// In Department.php
+public function products()
+{
+    return $this->hasManyThrough(
+        Product::class,
+        Category::class,
+        'department_id', // Foreign key on categories table
+        'category_id',   // Foreign key on products table
+        'id',           // Local key on departments table
+        'id'            // Local key on categories table
+    );
+}
+
 }

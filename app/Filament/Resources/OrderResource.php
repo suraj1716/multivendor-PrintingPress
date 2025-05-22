@@ -15,6 +15,7 @@ use Filament\Tables;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class OrderResource extends Resource
 {
@@ -36,6 +37,9 @@ class OrderResource extends Resource
                 Tables\Columns\TextColumn::make('id')
                     ->sortable()  ->searchable()
                     ->label('Order ID'),
+
+                     Tables\Columns\TextColumn::make('vendorUser.vendor.user_id')
+                    ->label('Vendor Id'),
 
                 Tables\Columns\TextColumn::make('vendorUser.vendor.store_name')
                     ->label('Vendor Store'),
@@ -85,8 +89,10 @@ class OrderResource extends Resource
     }
 
 
+
     public static function getTableQuery(): Builder
     {
-        return parent::getTableQuery()->with('vendorUser');
+        $userId=Auth::id();
+        return parent::getTableQuery()->with('vendorUser') ->where('vendor_user_id',  $userId) ;
     }
 }

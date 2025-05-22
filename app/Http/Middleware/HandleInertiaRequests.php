@@ -7,6 +7,8 @@ use App\Http\Resources\DepartmentResource;
 use App\Models\Department;
 use App\services\CartService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
 
@@ -32,39 +34,48 @@ class HandleInertiaRequests extends Middleware
      *
      * @return array<string, mixed>
      */
-    public function share(Request $request): array
-    {
-        $cartService = app(CartService::class);
-        $totalQuantity = $cartService->getTotalQuantity();
-        $totalPrice = $cartService->getTotalPrice();
-        $cartItems = $cartService->getCartItems();
-        $departments = Department::published()
-            ->with('categories')
-            ->get();
+   public function share(Request $request): array
+{
+    Log::info('Inertia share departments called.');
 
-        // dd($totalQuantity,$totalPrice,$cartItems);
+    $dpts = Department::whereHas('categories.products')
+        ->withCount(['products as products_count'])
+        ->get(['id', 'name', 'slug']);
 
-        return [
+    Log::info('Departments with counts:', $dpts->toArray());
 
-            ...parent::share($request),
-            'appName'=>config('app.name'),
-            'csrf_token' => csrf_token(),
-            'auth' => [
-                'user' => $request->user() ? new AuthUserResource($request->user()) : null,
-            ],
-            'ziggy' => fn() => [
-                ...(new Ziggy)->toArray(),
-                'location' => $request->url(),
-            ],
-            'success' => [
-                'message' =>  session('success'),
-                'time' => microtime(true)
-            ],
-            'totalPrice' => $totalPrice,
-            'totalQuantity' => $totalQuantity,
-            'miniCartItems' => $cartItems,
-            'departments' => DepartmentResource::collection($departments)->collection->toArray(),
-            'error' => session('error')
-        ];
-    }
+    $cartService = app(CartService::class);
+    $totalQuantity = $cartService->getTotalQuantity();
+    $totalPrice = $cartService->getTotalPrice();
+    $cartItems = $cartService->getCartItems();
+
+    return array_merge(parent::share($request), [
+        'appName' => config('app.name'),
+        'csrf_token' => csrf_token(),
+        'auth' => [
+            'user' => $request->user() ? new AuthUserResource($request->user()) : null,
+        ],
+        'ziggy' => fn() => [
+            ...(new Ziggy)->toArray(),
+            'location' => $request->url(),
+        ],
+        'success' => [
+            'message' => session('success'),
+            'time' => microtime(true),
+        ],
+        'totalPrice' => $totalPrice,
+        'totalQuantity' => $totalQuantity,
+        'miniCartItems' => $cartItems,
+        'dpts' => $dpts->map(function ($department) {
+            return [
+                'id' => $department->id,
+                'name' => $department->name,
+                'slug' => $department->slug,
+                'productsCount' => $department->products_count,
+            ];
+        }),
+        'error' => session('error'),
+    ]);
+}
+
 }
