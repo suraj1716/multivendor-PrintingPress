@@ -24,21 +24,21 @@ class OrderResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-//         ->filters([
-//     Tables\Filters\SelectFilter::make('status')
-//         ->label('Status')
-//         ->options(
-//             collect(OrderStatusEnum::cases())
-//                 ->mapWithKeys(fn($case) => [$case->value => OrderStatusEnum::labels()[$case->value]])
-//                 ->toArray()
-//         )
-// ])
+            //         ->filters([
+            //     Tables\Filters\SelectFilter::make('status')
+            //         ->label('Status')
+            //         ->options(
+            //             collect(OrderStatusEnum::cases())
+            //                 ->mapWithKeys(fn($case) => [$case->value => OrderStatusEnum::labels()[$case->value]])
+            //                 ->toArray()
+            //         )
+            // ])
             ->columns([
                 Tables\Columns\TextColumn::make('id')
-                    ->sortable()  ->searchable()
+                    ->sortable()->searchable()
                     ->label('Order ID'),
 
-                     Tables\Columns\TextColumn::make('vendorUser.vendor.user_id')
+                Tables\Columns\TextColumn::make('vendorUser.vendor.user_id')
                     ->label('Vendor Id'),
 
                 Tables\Columns\TextColumn::make('vendorUser.vendor.store_name')
@@ -55,6 +55,15 @@ class OrderResource extends Resource
                     })
                     ->sortable()
                     ->searchable(),
+
+      Tables\Columns\TextColumn::make('attachment_path')
+    ->label('Attachment')
+    ->getStateUsing(function (Order $record) {
+        // Get first attachment path from related order items, or null if none
+        return optional($record->orderItems()->first())->attachment_path ?? 'No attachment';
+    })
+    ->url(fn (Order $record) => optional($record->orderItems()->first())->attachment_path ? asset('storage/' . $record->orderItems()->first()->attachment_path) : null)
+    ->openUrlInNewTab(),
 
                 Tables\Columns\SelectColumn::make('status')
                     ->label('Status')
@@ -92,7 +101,7 @@ class OrderResource extends Resource
 
     public static function getTableQuery(): Builder
     {
-        $userId=Auth::id();
-        return parent::getTableQuery()->with('vendorUser') ->where('vendor_user_id',  $userId) ;
+        $userId = Auth::id();
+        return parent::getTableQuery()->with('vendorUser')->where('vendor_user_id',  $userId);
     }
 }

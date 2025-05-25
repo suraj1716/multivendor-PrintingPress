@@ -166,7 +166,6 @@ const { dpts } = usePage().props as { dpts: Department[] };
           <h1 className="pr-7 pl-4">Shop by Departments:</h1>
         <ul className="menu menu-horizontal menu-dropdown dropdown-hover px-1 z-20 py-0">
  {dpts.map((department) => {
-  console.log(`Checking ${department.name} - productsCount: ${department.productsCount}`);
 
   if (department.productsCount === 0) return null; // 👈 Skip rendering
 

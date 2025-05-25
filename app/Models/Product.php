@@ -29,7 +29,10 @@ use HasFactory;
 
     public function ScopeForVendor(Builder $query): Builder
     {
-        return $query->where('created_by', Auth::id());
+          $userId = Auth::id();
+
+    return $query->where('created_by', $userId)
+                 ->orWhere('status', 'published');
     }
 
     public function ScopePublished(Builder $query): Builder

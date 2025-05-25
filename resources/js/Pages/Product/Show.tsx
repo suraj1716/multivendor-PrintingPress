@@ -383,12 +383,21 @@ function Show({
   product: Product;
   variationOptions: number[];
 }) {
-  const form = useForm({
-    options_ids: {},
+  const form = useForm<{
+    option_ids: Record<string, number>;
+    quantity: number;
+    price: number | null;
+    wantsAttachment: boolean;
+    attachment?: File | null;
+  }>({
+    option_ids: {},
     quantity: 1,
-    price: null,
+    price: 0,
+    wantsAttachment: false,
+    attachment: null,
   });
-
+  const designCharge = 20;
+  const [wantsAttachment, setWantsAttachment] = useState(false);
   const { url } = usePage();
   const [selectedOptions, setSelectedOptions] = useState<
     Record<number, VariationTypeOption>
@@ -531,36 +540,45 @@ function Show({
     form.setData("quantity", parseInt(ev.target.value));
   };
 
+  const finalPrice = useMemo(() => {
+    const basePrice = Number(computedProduct.price); // ensure it's a number
+    return form.data.wantsAttachment ? basePrice + designCharge : basePrice;
+  }, [computedProduct.price, form.data.wantsAttachment]);
+
+  useEffect(() => {
+    form.setData("price", finalPrice);
+  }, [finalPrice]);
+
   const addToCart = () => {
     const requiredVariationTypeIds = product.variationTypes.map((vt) => vt.id);
     const selectedOptionTypeIds = Object.keys(selectedOptions).map(Number);
 
-    console.log("Required Variation Type IDs:", requiredVariationTypeIds);
-    console.log("Selected Option Type IDs:", selectedOptionTypeIds);
-    console.log("Selected Options:", selectedOptions);
-
-    // Check if all required variation types are selected
     const allOptionsSelected = requiredVariationTypeIds.every((id) =>
       selectedOptionTypeIds.includes(id)
     );
 
     if (!allOptionsSelected) {
-      console.warn("Not all options selected.");
       alert("Please select all product options before adding to cart.");
       return;
     }
 
-    const optionIdsMap: Record<string, number> = {};
+    const formData = new FormData();
+
+    formData.append("price", String(finalPrice));
+    formData.append("quantity", "1");
+
     Object.entries(selectedOptions).forEach(([typeId, option]) => {
-      optionIdsMap[typeId] = option.id;
+      formData.append(`option_ids[${typeId}]`, String(option.id));
     });
 
-    console.log("Option IDs to submit:", optionIdsMap);
-    form.setData("options_ids", optionIdsMap);
+    if (form.data.attachment) {
+      formData.append("attachment", form.data.attachment);
+    }
 
-    form.post(route("cart.store", product.id), {
+    router.post(route("cart.store", product.id), formData, {
       preserveScroll: true,
       preserveState: true,
+      forceFormData: true,
       onError: (errors) => {
         console.error("Error adding to cart:", errors);
       },
@@ -681,6 +699,8 @@ function Show({
     </>
   );
 
+  console.log(finalPrice, computedProduct.price);
+
   return (
     <AuthenticatedLayout>
       <Head title={product.title} />
@@ -728,7 +748,7 @@ function Show({
                 dangerouslySetInnerHTML={{ __html: product.description }}
               />
 
-              <div className="mb-6">
+              {/* <div className="mb-6">
                 <span className="text-3xl font-bold text-gray-800">
                   {computedProduct.price && (
                     <CurrencyFormatter
@@ -737,7 +757,7 @@ function Show({
                     />
                   )}
                 </span>
-              </div>
+              </div> */}
 
               {/* Variation selectors */}
               {renderVariationSelectors()}
@@ -764,11 +784,55 @@ function Show({
                   ))}
                 </select>
               </div>
+              <div className="mb-6">
+                <label className="inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.data.wantsAttachment}
+                    onChange={(e) =>
+                      form.setData("wantsAttachment", e.target.checked)
+                    }
+                    className="form-checkbox"
+                  />
+                  <span className="ml-2 text-gray-700">
+                    Do you want to add an attachment (adds ${designCharge} to
+                    price)?
+                  </span>
+                </label>
+              </div>
 
-              {/* Add to cart */}
+              {form.data.wantsAttachment && (
+                <div className="mb-6">
+                  <label className="block mb-2 text-sm font-medium text-gray-700">
+                    Upload Attachment
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) =>
+                      form.setData("attachment", e.target.files?.[0] || null)
+                    }
+                    className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50"
+                  />
+                  {form.errors.attachment && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {form.errors.attachment}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="mb-6">
+                <span className="text-3xl font-bold text-gray-800">
+                  {finalPrice !== null && (
+                    <CurrencyFormatter amount={finalPrice} currency="AUD" />
+                  )}
+                </span>
+              </div>
+
               <button
                 onClick={addToCart}
-                className="text-white bg-indigo-500 border-0 py-2 px-6 focus:outline-none hover:bg-indigo-600 rounded text-lg"
+                className="text-white bg-indigo-500 border-0 py-2 px-6 focus:outline-none hover:bg-indigo-600 rounded"
               >
                 Add to Cart
               </button>

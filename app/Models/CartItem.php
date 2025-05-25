@@ -11,8 +11,23 @@ class CartItem extends Model
      *
      * @var array
      */
+    protected $fillable = [
+        'user_id',
+        'product_id',
+        'quantity',
+        'price',
+        'attachment_path',
+        'attachment_name', // <- this MUST be here
+        'variation_type_option_ids',
+        // other fields...
+    ];
     protected $casts = [
         'variation_type_option_ids' => 'array',
     ];
+
+    public function user()
+{
+    return $this->belongsTo(User::class);
+}
 }
 

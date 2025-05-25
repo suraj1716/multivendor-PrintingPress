@@ -1,104 +1,110 @@
-import { Config } from 'ziggy-js';
+import { Config } from "ziggy-js";
 
 export interface User {
-    id: number;
-    name: string;
-    email: string;
-    email_verified_at?: string;
-    stripe_account_active:boolean;
-    vendor:{
-      status:string,
-      status_label:string,
-      store_name:string,
-      store_address:string,
-      cover_image:string
-    }
+  id: number;
+  name: string;
+  email: string;
+  email_verified_at?: string;
+  stripe_account_active: boolean;
+  vendor: {
+    status: string;
+    status_label: string;
+    store_name: string;
+    store_address: string;
+    cover_image: string;
+  };
 }
-
-
 
 export type VariationTypeOption = {
-id: number;
-    name: string;
-    images: Image[];
-    type:VariationType
-}
+  id: number;
+  name: string;
+  images: Image[];
+  type: VariationType;
+};
 export type VariationType = {
-    id: number;
-    name: string;
-    type:'Select' | 'Radio' | 'Image';
-    options: VariationTypeOption[]
-}
+  id: number;
+  name: string;
+  type: "Select" | "Radio" | "Image";
+  options: VariationTypeOption[];
+};
 
 export type Product = {
+  id: number;
+  title: string;
+  slug: string;
+  price: number;
+  image: string;
+  images: Image[];
+  description: string;
+  short_description: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string;
+  category_id: number;
+  category: {
     id: number;
-    title: string;
-    slug: string;
-    price: number;
-    image: string;
-    images: Image[];
-    description: string;
-    short_description: string;
+    name: string;
     created_at: string;
-    updated_at: string;
-    deleted_at?: string;
-    category_id: number;
-    category: {
-        id: number;
-        name: string;
-        created_at: string;
-        products_count?: number;
-    }
-    quantity: number;
-    user : {
-        id: number;
-        name: string;
-        store_name:string;
-    }
-    department: {
-        id: number;
-        name: string;
-        slug:string
-    },
-
-    variationTypes:VariationType[],
-    variations:Array<{
-        id: number;
-        variation_type_option_ids: number[];
-        quantity: number;
-        price: number;
-    }>
-  }
-
-
-
-  export type Image={
+    products_count?: number;
+  };
+  quantity: number;
+  user: {
     id: number;
-   thumb: string;
-    small: string;
-    large: string;
-  }
-
-  export type CartItem = {
+    name: string;
+    store_name: string;
+  };
+  department: {
     id: number;
-    product_id: number;
-   title: string;
-   slug: string;
-   price: number;
+    name: string;
+    slug: string;
+  };
+
+  variationTypes: VariationType[];
+  variations: Array<{
+    id: number;
+    variation_type_option_ids: number[];
     quantity: number;
-    image_url: string;
-    option_ids:Record<string, number>;
-    options:VariationTypeOption[];
-  }
+    price: number;
+  }>;
+};
+
+export type Image = {
+  id: number;
+  thumb: string;
+  small: string;
+  large: string;
+};
+
+export type CartItem = {
+  id: number;
+  product_id: number;
+  title: string;
+  slug: string;
+  price: number;
+  quantity: number;
+  image_url: string;
+  option_ids: Record<string, number>;
+  options: VariationTypeOption[];
+  attachment_path: string,
+   attachment_name: string
+};
+
+export type GroupedCartItems = {
+  user: User;
+  items: CartItem[];
+  totalPrice: number;
+  totalQuantity: number;
+};
+
 export type PaginationProps<T> = {
   data: T[];
 
   // object with first / last / prev / next (rarely used for page buttons)
   links: {
     first: string | null;
-    last : string | null;
-    prev : string | null;
-    next : string | null;
+    last: string | null;
+    prev: string | null;
+    next: string | null;
   };
 
   // meta holds the array you normally loop over
@@ -119,100 +125,88 @@ export type PaginationProps<T> = {
 };
 
 
-export type GroupedCartItems = {
-    user:User;
-    items:CartItem[];
-    totalPrice: number;
-    totalQuantity: number;
-}
-
 export type PageProps<
-    T extends Record<string, unknown> = Record<string, unknown>,
+  T extends Record<string, unknown> = Record<string, unknown>
 > = T & {
-  appName:string,
+  appName: string;
   csrf_token: string;
-  error:string,
-  success:{
-message:string;
-time:number
-  },
-    auth: {
-        user: User;
-    };
-    ziggy: Config & { location: string };
-    totalQuantity: number;
-    totalPrice: number;
-    miniCartItems: CartItem[];
-    departments:Department[];
-    dpts:Department[];
+  error: string;
+  success: {
+    message: string;
+    time: number;
+  };
+  auth: {
+    user: User;
+  };
+  ziggy: Config & { location: string };
+  totalQuantity: number;
+  totalPrice: number;
+  miniCartItems: CartItem[];
+  departments: Department[];
+  dpts: Department[];
 };
 
-export type OrderItem={
-  id:number,
-  quantity:number,
-  price:number,
-  variation_type_option_ids:number[],
-product:{
-  id:number,
-  title:string,
-  slug:string,
-  description:string
-  image:string
-}
-}
+export type OrderItem = {
+  id: number;
+  quantity: number;
+  price: number;
+  variation_type_option_ids: number[];
+  product: {
+    id: number;
+    title: string;
+    slug: string;
+    description: string;
+    image: string;
+  };
+};
 
-export type Order={
-  id:number,
-  total_price:number,
-  status:string,
-  created_at:string
-  vendorUser:{
-    id:string,
-    name:string,
-    email:string,
-    store_name:string,
-    store_address:string
-  }
+export type Order = {
+  id: number;
+  total_price: number;
+  status: string;
+  created_at: string;
+  vendorUser: {
+    id: string;
+    name: string;
+    email: string;
+    store_name: string;
+    store_address: string;
+  };
 
-  orderItems:OrderItem[]
-}
+  orderItems: OrderItem[];
+};
 
+export type Vendor = {
+  id: number;
+  store_name: string;
+  store_address: string;
+};
 
+export type Category = {
+  id: number;
+  name: string;
+  products_count: number;
+};
 
-export type Vendor={
-  id:number;
-  store_name:string;
-  store_address:string;
-}
+export type Department = {
+  id: number;
+  name: string;
+  slug: string;
+  meta_title: string;
+  meta_description: string;
+  categories: Category[];
+  productsCount: number;
+};
 
-
-
-export type Category={
-  id:number,
-  name:string,
-   products_count: number;
-}
-
-export type Department={
-  id:number,
-  name:string,
-  slug:string,
-  meta_title:string,
-  meta_description:string,
-  categories:Category[],
-   productsCount: number;
-}
-
-export type dpts={
-  id:number,
-  name:string,
-  slug:string,
-  meta_title:string,
-  meta_description:string,
-  categories:Category[],
-   productsCount: number;
-}
-
+export type dpts = {
+  id: number;
+  name: string;
+  slug: string;
+  meta_title: string;
+  meta_description: string;
+  categories: Category[];
+  productsCount: number;
+};
 
 export type ProductListItem = {
   id: number;

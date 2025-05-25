@@ -176,16 +176,16 @@ class ProductController extends Controller
 
 
 
-        if ($categories->isEmpty()) {
-            Log::warning("No categories with products found for department '{$slug}'.");
-        } else {
-            foreach ($categories as $cat) {
-                Log::info("Category with products found:", [
-                    'category_id' => $cat->id,
-                    'category_name' => $cat->name,
-                ]);
-            }
-        }
+        // if ($categories->isEmpty()) {
+        //     Log::warning("No categories with products found for department '{$slug}'.");
+        // } else {
+        //     foreach ($categories as $cat) {
+        //         Log::info("Category with products found:", [
+        //             'category_id' => $cat->id,
+        //             'category_name' => $cat->name,
+        //         ]);
+        //     }
+        // }
 
         return Inertia::render('Department/Index', [
             'department' => $department,

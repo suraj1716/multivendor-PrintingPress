@@ -22,7 +22,6 @@ class VendorController extends Controller
 
 public function profile(Request $request, Vendor $vendor)
 {
-    Log::info('Vendor Object:', ['vendor' => $vendor]);
 
     // Only approved vendors can be viewed
     if ($vendor->status !== 'approved') {
@@ -76,17 +75,7 @@ public function profile(Request $request, Vendor $vendor)
     }])
     ->get();
 
-    Log::info('Vendor profile filters:', [
-        'department_id' => $departmentId,
-        'category_id' => $categoryId,
-        'max_price' => $maxPrice,
-        'sort_by' => $sortBy,
-    ]);
 
-    Log::info('Products Query SQL:', [
-        'sql' => $productsQuery->toSql(),
-        'bindings' => $productsQuery->getBindings(),
-    ]);
 
     // Return with Inertia
     return Inertia::render('Vendor/Profile', [

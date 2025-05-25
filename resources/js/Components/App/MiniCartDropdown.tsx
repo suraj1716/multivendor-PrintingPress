@@ -4,7 +4,9 @@ import React from "react";
 
 function MiniCartDropdown() {
   const { totalPrice, totalQuantity, miniCartItems } = usePage().props;
-    console.log(totalPrice);
+
+  console.log(miniCartItems, totalPrice, totalQuantity);
+
   return (
     <>
     <div className="dropdown dropdown-end">

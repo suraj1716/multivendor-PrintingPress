@@ -13,13 +13,21 @@ use App\Models\Product;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 
 
 
-
+Route::get('/test-cart-cookie', function () {
+    $rawCookie = Cookie::get('cartItems');
+    $decoded = json_decode($rawCookie, true);
+    return response()->json([
+        'raw' => $rawCookie,
+        'decoded' => $decoded
+    ]);
+});
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile/shipping-addresses', [ShippingAddressController::class, 'index'])->name('shipping.index');

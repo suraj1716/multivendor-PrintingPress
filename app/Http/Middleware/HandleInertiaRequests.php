@@ -36,13 +36,11 @@ class HandleInertiaRequests extends Middleware
      */
    public function share(Request $request): array
 {
-    Log::info('Inertia share departments called.');
 
     $dpts = Department::whereHas('categories.products')
         ->withCount(['products as products_count'])
         ->get(['id', 'name', 'slug']);
 
-    Log::info('Departments with counts:', $dpts->toArray());
 
     $cartService = app(CartService::class);
     $totalQuantity = $cartService->getTotalQuantity();

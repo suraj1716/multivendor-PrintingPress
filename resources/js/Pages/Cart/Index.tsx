@@ -26,11 +26,12 @@ function Index({
     postal_code: string;
     country: string;
     is_default: boolean;
+     attachment_path: string;
   }[];
 }>) {
   // pre‑select default address
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
-    shippingAddresses.find(a => a.is_default)?.id ?? null
+    shippingAddresses.find((a) => a.is_default)?.id ?? null
   );
 
   return (
@@ -49,7 +50,7 @@ function Index({
               </p>
             )}
 
-            {Object.values(cartItems).map(group => (
+            {Object.values(cartItems).map((group) => (
               <section key={group.user.id} className="mb-6">
                 <div className="flex items-center justify-between pb-2 border-b">
                   <Link href="/" className="underline">
@@ -57,9 +58,9 @@ function Index({
                   </Link>
                 </div>
 
-                {group.items.map(item => (
-                  <CartItem key={item.id} item={item} />
-                ))}
+              {group.items.map(item => (
+  <CartItem key={item.id} item={item} />
+))}
               </section>
             ))}
           </div>
@@ -68,64 +69,68 @@ function Index({
         {/* ---------- SIDEBAR: ADDRESS + CHECKOUT ---------- */}
         <div className="card flex-1 bg-white dark:bg-gray-800 lg:min-w-[260px] order-1 lg:order-2">
           <form
-  action={route("cart.checkout")}
-  method="post"
-  className="card-body space-y-6"
-  onSubmit={(e) => {
-    if (!selectedAddressId) {
-      e.preventDefault();
-      alert("Please select a shipping address before proceeding to checkout.");
-    }
-  }}
->
+            action={route("cart.checkout")}
+            method="post"
+            className="card-body space-y-6"
+            onSubmit={(e) => {
+              if (!selectedAddressId) {
+                e.preventDefault();
+                alert(
+                  "Please select a shipping address before proceeding to checkout."
+                );
+              }
+            }}
+          >
             <input type="hidden" name="_token" value={csrf_token} />
 
             {/* choose address */}
-        {/* choose address */}
-<div className="mb-4">
-  <div className="flex justify-between items-center mb-2">
-    <p className="text-lg font-bold">Choose a shipping address</p>
-    <Link
-      href={route('profile.edit')}
-      className="inline-block px-3 py-1.5 text-sm font-semibold text-white bg-blue-600 rounded hover:bg-blue-700"
-    >
-      + Add New Address
-    </Link>
-  </div>
+            {/* choose address */}
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <p className="text-lg font-bold">Choose a shipping address</p>
+                <Link
+                  href={route("profile.edit")}
+                  className="inline-block px-3 py-1.5 text-sm font-semibold text-white bg-blue-600 rounded hover:bg-blue-700"
+                >
+                  + Add New Address
+                </Link>
+              </div>
 
-  {shippingAddresses.map(addr => (
-    <label
-      key={addr.id}
-      className="border p-4 rounded-md block cursor-pointer hover:border-blue-500 flex gap-3 mb-3"
-    >
-      <input
-        type="radio"
-        name="shipping_address_id"
-        value={addr.id}
-        checked={selectedAddressId === addr.id}
-        onChange={() => setSelectedAddressId(addr.id)}
-        className="mt-1"
-        required
-      />
-      <div>
-        <p className="font-semibold">
-          {addr.full_name}
-          {addr.is_default && (
-            <span className="text-sm text-green-600"> (Default)</span>
-          )}
-        </p>
-        <p>
-          {addr.address_line1}
-          {addr.address_line2 && `, ${addr.address_line2}`}, {addr.city},{" "}
-          {addr.state} {addr.postal_code}
-        </p>
-        <p>{addr.country}</p>
-        <p className="text-sm text-gray-600">Phone: {addr.phone}</p>
-      </div>
-    </label>
-  ))}
-</div>
-
+              {shippingAddresses.map((addr) => (
+                <label
+                  key={addr.id}
+                  className="border p-4 rounded-md block cursor-pointer hover:border-blue-500 flex gap-3 mb-3"
+                >
+                  <input
+                    type="radio"
+                    name="shipping_address_id"
+                    value={addr.id}
+                    checked={selectedAddressId === addr.id}
+                    onChange={() => setSelectedAddressId(addr.id)}
+                    className="mt-1"
+                    required
+                  />
+                  <div>
+                    <p className="font-semibold">
+                      {addr.full_name}
+                      {addr.is_default && (
+                        <span className="text-sm text-green-600">
+                          {" "}
+                          (Default)
+                        </span>
+                      )}
+                    </p>
+                    <p>
+                      {addr.address_line1}
+                      {addr.address_line2 && `, ${addr.address_line2}`},{" "}
+                      {addr.city}, {addr.state} {addr.postal_code}
+                    </p>
+                    <p>{addr.country}</p>
+                    <p className="text-sm text-gray-600">Phone: {addr.phone}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
 
             {/* subtotal + pay */}
             <div className="space-y-4">
