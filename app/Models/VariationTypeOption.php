@@ -26,4 +26,6 @@ class VariationTypeOption extends Model implements HasMedia
     {
         return $this->belongsTo(VariationType::class);
     }
+
+
 }

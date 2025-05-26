@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderItem extends Model
 {
+
     protected $casts = [
     'variation_type_option_ids' => 'array',
 ];
@@ -24,4 +25,7 @@ class OrderItem extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+
+
 }

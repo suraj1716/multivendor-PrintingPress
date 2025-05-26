@@ -1,97 +1,122 @@
-<x-filament::page class="space-y-6">
+<x-filament::page class="text-gray-800 print:bg-white print:text-black print:p-0">
 
-    <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Order #{{ $record->id }} Details</h1>
+    {{-- Print Button --}}
+    <div class="flex justify-end mb-4 print:hidden">
+        <button onclick="window.print()"
+            class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 text-sm">
+            Print Invoice
+        </button>
+    </div>
 
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    {{-- Invoice Header --}}
+    <div class="bg-white shadow rounded-md p-4 md:p-6 mb-6 border">
+        <div class="flex flex-col md:flex-row md:justify-between gap-4 md:gap-0 mb-4">
+            <div>
+                <h2 class="text-lg md:text-xl font-bold">Invoice</h2>
+                <p class="text-xs md:text-sm text-gray-600">Order ID: <span class="font-medium">{{ $record->id }}</span></p>
+                <p class="text-xs md:text-sm text-gray-600">Order Date: <span class="font-medium">{{ $record->created_at->format('F d, Y') }}</span></p>
+                <p class="text-xs md:text-sm text-gray-600">Status: <span class="capitalize font-medium">{{ $record->status }}</span></p>
+            </div>
 
-        {{-- Order Summary --}}
-        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <h2 class="text-lg font-semibold mb-3 text-gray-800">Order Summary</h2>
-            <dl class="space-y-2 text-gray-600 text-sm">
+            {{-- Vendor and Shipping Info --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs md:text-sm text-gray-700">
                 <div>
-                    <dt class="font-semibold uppercase tracking-wide">Status</dt>
-                    <dd class="text-indigo-600 font-semibold">{{ ucfirst($record->status) }}</dd>
+                    <h3 class="font-semibold mb-1 md:mb-2">Vendor Details</h3>
+                    <p>Name: {{ $record->vendorUser->name ?? 'N/A' }}</p>
+                    <p>Store: {{ $record->vendorUser->vendor->store_name ?? 'N/A' }}</p>
+                    <p>Address: {{ $record->vendorUser->vendor->store_address ?? 'N/A' }}</p>
                 </div>
                 <div>
-                    <dt class="font-semibold uppercase tracking-wide">Total Price</dt>
-                    <dd class="text-green-600 font-bold">${{ number_format($record->total_price, 2) }}</dd>
+                    <h3 class="font-semibold mb-1 md:mb-2">Shipping Address</h3>
+                    @if ($record->shippingAddress)
+                        <address class="not-italic leading-relaxed text-gray-700 space-y-1">
+                            <p>{{ $record->shippingAddress->full_name }}</p>
+                            <p>{{ $record->shippingAddress->address_line1 }}</p>
+                            <p>{{ $record->shippingAddress->city }}, {{ $record->shippingAddress->state }} {{ $record->shippingAddress->postal_code }}</p>
+                            <p>{{ $record->shippingAddress->country }}</p>
+                            <p>Phone: {{ $record->shippingAddress->phone }}</p>
+                        </address>
+                    @else
+                        <p class="italic text-gray-400">No shipping address provided.</p>
+                    @endif
                 </div>
-                <div>
-                    <dt class="font-semibold uppercase tracking-wide">Order Date</dt>
-                    <dd class="text-gray-700">{{ $record->created_at->format('F j, Y @ H:i') }}</dd>
-                </div>
-            </dl>
+            </div>
         </div>
+    </div>
 
-        {{-- Vendor Info --}}
-        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <h2 class="text-lg font-semibold mb-3 text-gray-800">Vendor Information</h2>
-            <p class="text-gray-700 text-sm mb-1">
-                <span class="font-semibold">Store:</span> {{ $record->vendorUser->vendor->store_name ?? 'N/A' }}
-            </p>
-            <p class="text-gray-700 text-sm">
-                <span class="font-semibold">Vendor Name:</span> {{ $record->vendorUser->name ?? 'N/A' }}
-            </p>
-        </div>
+    {{-- Order Items Table --}}
+    <div class="bg-white shadow rounded-md border overflow-x-auto">
+        <table class="w-full table-auto text-xs sm:text-sm text-left border-collapse min-w-[600px]">
 
-        {{-- Shipping Address --}}
-        <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <h2 class="text-lg font-semibold mb-3 text-gray-800">Shipping Address</h2>
-            @if ($record->shippingAddress)
-                <address class="not-italic space-y-1 text-gray-700 text-sm">
-                    <p>{{ $record->shippingAddress->full_name }}</p>
-                    <p>{{ $record->shippingAddress->address_line1 }}</p>
-                    <p>{{ $record->shippingAddress->city }}, {{ $record->shippingAddress->state }} {{ $record->shippingAddress->postal_code }}</p>
-                    <p>{{ $record->shippingAddress->country }}</p>
-                    <p>Phone: {{ $record->shippingAddress->phone }}</p>
-                </address>
-            @else
-                <p class="italic text-gray-400 text-sm">No shipping address provided.</p>
-            @endif
-        </div>
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="p-2 sm:p-3 border">#</th>
+                    <th class="p-2 sm:p-3 border">Image</th>
+                    <th class="p-2 sm:p-3 border">Product</th>
+                    <th class="p-2 sm:p-3 border">Attachment Filename</th> {{-- New column --}}
+                    <th class="p-2 sm:p-3 border">Quantity</th>
+                    <th class="p-2 sm:p-3 border">Price</th>
+                    <th class="p-2 sm:p-3 border">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($record->orderItems as $index => $item)
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-2 sm:p-3 border align-top">{{ $index + 1 }}</td>
 
-    </section>
+                        {{-- Variation Images and Names --}}
+                        <td class="p-2 sm:p-3 border align-top">
+                            @if ($item->variation_type_option_ids && is_array($item->variation_type_option_ids))
+                                <div class="flex flex-wrap gap-1 items-center">
+                                    @foreach ($item->variation_type_option_ids as $optionId)
+                                        @php
+                                            $option = \App\Models\VariationTypeOption::with('variationType', 'media')->find($optionId);
+                                            $image = $option ? $option->getMedia('images')->first() : null;
+                                            $imageUrl = $image ? $image->getUrl('thumb') : null;
+                                        @endphp
+                                        <div class="flex items-center space-x-1">
+                                            @if ($imageUrl)
+                                                <img src="{{ $imageUrl }}" alt="{{ $option->name ?? 'Variation' }}"
+                                                    class="w-8 h-8 object-contain rounded border" />
+                                            @endif
+                                            <span class="text-[10px] sm:text-xs">{{ $option->variationType->name ?? 'N/A' }}: {{ $option->name ?? 'N/A' }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <span class="italic text-gray-400 text-[10px] sm:text-xs">No variations</span>
+                            @endif
+                        </td>
 
-    {{-- Order Items --}}
-    <section class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-        <h2 class="text-xl font-semibold mb-5 text-gray-900">Order Items</h2>
+                        {{-- Product Title --}}
+                        <td class="p-2 sm:p-3 border align-top">{{ $item->product->title ?? 'N/A' }}</td>
 
-        <div class="divide-y divide-gray-300">
-            @foreach ($record->orderItems as $item)
-                <div class="flex items-center space-x-4 py-3">
+                        {{-- Attachment Filename --}}
+                        <td class="p-2 sm:p-3 border align-top">
+                            @if ($item->attachment_path)
+                                <a href="{{ asset('storage/' . $item->attachment_path) }}" target="_blank"
+                                    class="text-blue-600 underline text-[10px] sm:text-xs">
+                                    {{ $item->attachment_name ?? basename($item->attachment_path) }}
+                                </a>
+                            @else
+                                <span class="italic text-gray-400 text-[10px] sm:text-xs">No attachment</span>
+                            @endif
+                        </td>
 
-                    {{-- Product Image --}}
-                    <div class="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden border border-gray-300 bg-gray-50">
-                        @if ($item->product && $item->product->getFirstMediaUrl('images'))
-                            <img src="{{ $item->product->getFirstMediaUrl('images', 'thumb') }}" alt="{{ $item->product->title }}" class="object-cover w-full h-full">
-                        @elseif ($item->variation_image_url ?? false)
-                            <img src="{{ $item->variation_image_url }}" alt="{{ $item->product->title }}" class="object-cover w-full h-full">
-                        @else
-                            <div class="flex items-center justify-center w-full h-full text-gray-400 text-xs">No Image</div>
-                        @endif
-                    </div>
+                        <td class="p-2 sm:p-3 border align-top">{{ $item->quantity }}</td>
+                        <td class="p-2 sm:p-3 border align-top">${{ number_format($item->price, 2) }}</td>
+                        <td class="p-2 sm:p-3 border align-top">${{ number_format($item->price * $item->quantity, 2) }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
 
-                    {{-- Product Info --}}
-                    <div class="flex-1 min-w-0">
-                        <p class="text-lg font-semibold text-gray-900 truncate">{{ $item->product->title ?? 'N/A' }}</p>
-                        @if ($item->variation_options)
-                            <p class="mt-0.5 text-xs text-gray-500">
-                                @foreach ($item->variation_options as $optionName => $optionValue)
-                                    <span>{{ $optionName }}: <strong>{{ $optionValue }}</strong></span>@if (!$loop->last), @endif
-                                @endforeach
-                            </p>
-                        @endif
-                    </div>
-
-                    {{-- Quantity & Price --}}
-                    <div class="flex flex-col items-end space-y-1 min-w-[90px]">
-                        <p class="text-gray-700 text-sm">Qty: <span class="font-semibold">{{ $item->quantity }}</span></p>
-                        <p class="text-green-700 font-bold text-lg">${{ number_format($item->price, 2) }}</p>
-                    </div>
-
-                </div>
-            @endforeach
-        </div>
-    </section>
+            <tfoot class="bg-gray-50">
+                <tr>
+                    <td colspan="6" class="p-3 text-right font-semibold border text-sm">Grand Total</td>
+                    <td class="p-3 border font-bold text-green-700 text-sm">${{ number_format($record->total_price, 2) }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
 
 </x-filament::page>

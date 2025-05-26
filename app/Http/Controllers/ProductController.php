@@ -2,15 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\DepartmentResource;
 use App\Http\Resources\ProductResource;
 use App\Http\Resources\ProductListResource;
-use App\Models\Category;
 use App\Models\Department;
 use App\Models\Product;
 use App\services\ProductSearchService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class ProductController extends Controller
@@ -37,50 +34,6 @@ class ProductController extends Controller
         ]);
     }
 
-
-
-
-
-
-
-
-
-    //   public function home(Request $request)
-    // {
-    //     $keyword = $request->query('keyword');
-
-    //     $query = Product::query()
-    //         ->forWebsite() // assuming this is a global scope or local scope you want on all queries
-    //         ->with(['variationTypes', 'variationTypes.options', 'variations']);
-
-    //     if ($keyword) {
-    //         $query->where(function ($q) use ($keyword) {
-    //             $q->where('title', 'LIKE', "%{$keyword}%")
-    //               ->orWhere('description', 'LIKE', "%{$keyword}%");
-    //         });
-    //     }
-
-    //     $products = $query->paginate(12);
-
-    //     return Inertia::render('Home', [
-    //         'products' => ProductListResource::collection($products),
-    //     ]);
-    // }
-
-
-
-
-    //   public function show(Product $product)
-    // {
-    //     // Load the variations and variationTypes relationships for the product
-    //     $product->load(['variations', 'variationTypes']);
-
-    //     // Return an Inertia response with the formatted data
-    //     return Inertia::render('Product/Show', [
-    //         'product' => new ProductResource($product), // Send product data in a structured format
-    //         'variationOptions' => request('option', []), // Send any selected options from the request (defaults to an empty array)
-    //     ]);
-    // }
 
 
 
@@ -173,20 +126,6 @@ class ProductController extends Controller
             }])
             ->get();
 
-
-
-
-        // if ($categories->isEmpty()) {
-        //     Log::warning("No categories with products found for department '{$slug}'.");
-        // } else {
-        //     foreach ($categories as $cat) {
-        //         Log::info("Category with products found:", [
-        //             'category_id' => $cat->id,
-        //             'category_name' => $cat->name,
-        //         ]);
-        //     }
-        // }
-
         return Inertia::render('Department/Index', [
             'department' => $department,
             'products' => ProductListResource::collection($products),
@@ -247,15 +186,6 @@ class ProductController extends Controller
         }
 
         $products = $query->paginate(12)->withQueryString();
-
-        // Optional: debugging info
-        // foreach ($products as $product) {
-        //     logger()->info('Product vendor debug', [
-        //         'product_id' => $product->id,
-        //         'product_title' => $product->title,
-        //         'vendor' => $product->user->vendor ? $product->user->vendor->toArray() : 'No vendor loaded',
-        //     ]);
-        // }
 
         return Inertia::render('Shop/ListProducts', [
             'products' => ProductListResource::collection($products),

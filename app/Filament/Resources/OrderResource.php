@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Enums\OrderStatusEnum;
 use App\Filament\Resources\OrderResource\Pages;
 use App\Models\Order;
+use App\Models\VariationTypeOption;
 use Filament\Forms;
 use Filament\Resources\Form;
 use Filament\Resources\Resource;
@@ -56,14 +57,66 @@ class OrderResource extends Resource
                     ->sortable()
                     ->searchable(),
 
-      Tables\Columns\TextColumn::make('attachment_path')
+           Tables\Columns\TextColumn::make('attachment_path')
     ->label('Attachment')
     ->getStateUsing(function (Order $record) {
-        // Get first attachment path from related order items, or null if none
         return optional($record->orderItems()->first())->attachment_path ?? 'No attachment';
     })
-    ->url(fn (Order $record) => optional($record->orderItems()->first())->attachment_path ? asset('storage/' . $record->orderItems()->first()->attachment_path) : null)
-    ->openUrlInNewTab(),
+    ->url(fn(Order $record) => optional($record->orderItems()->first())->attachment_path ? asset('storage/' . $record->orderItems()->first()->attachment_path) : null)
+    ->openUrlInNewTab()
+    ->extraAttributes(['style' => 'max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;']),
+
+
+
+
+
+
+
+
+
+
+
+Tables\Columns\TextColumn::make('variation_images')
+    ->label('Variation Images')
+    ->getStateUsing(function (Order $record) {
+        $allVariations = [];
+
+        foreach ($record->orderItems as $item) {
+            $variationStrings = [];
+            $variationIds = $item->variation_type_option_ids;
+
+            if (is_array($variationIds) && count($variationIds)) {
+                foreach ($variationIds as $optionId) {
+                    $option = VariationTypeOption::with('variationType', 'media')->find($optionId);
+                    if ($option) {
+                        $image = $option->getMedia('images')->first();
+                        $imageUrl = $image ? $image->getUrl('thumb') : null;
+
+                        $variationName = $option->variationType->name ?? 'N/A';
+                        $optionName = $option->name ?? 'N/A';
+
+                        $imageTag = $imageUrl
+                            ? "<img src='{$imageUrl}' alt='{$optionName}' style='width:30px; height:30px; object-fit:contain; margin-right:8px; border:1px solid #ccc; border-radius:4px;' />"
+                            : '';
+
+                        // Wrap image and text in a flex container for side-by-side layout
+                        $variationStrings[] = "<div style='display:flex; align-items:center; margin-bottom:4px;'>{$imageTag}<span>{$variationName}: {$optionName}</span></div>";
+                    }
+                }
+            }
+
+            $allVariations[] = implode('', $variationStrings);
+        }
+
+        return implode('<hr style="margin:8px 0;">', $allVariations);
+    })
+    ->html()
+    ->wrap()
+    ->toggleable(),
+
+
+
+
 
                 Tables\Columns\SelectColumn::make('status')
                     ->label('Status')

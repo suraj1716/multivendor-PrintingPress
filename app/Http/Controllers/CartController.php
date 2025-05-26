@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\ShippingAddress;
 use App\services\CartService;
 use App\services\CartService as ServicesCartService;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
@@ -107,6 +108,7 @@ return back()->with('success', 'Product quantity and attachment updated successf
 
     public function checkout(Request $request, CartService $cartService)
     {
+         Log::info('Checkout method called', ['user_id' => $request->user()->id ?? 'guest']);
         $request->validate([
             'vendor_id' => ['nullable', 'integer'],
             'shipping_address_id' => ['required', 'exists:shipping_addresses,id'],
@@ -177,6 +179,7 @@ return back()->with('success', 'Product quantity and attachment updated successf
 
                     $lineItems[] = $lineItem;
                 }
+
             }
 
             $session = Session::create([
@@ -194,7 +197,7 @@ return back()->with('success', 'Product quantity and attachment updated successf
 
             DB::commit();
             return redirect($session->url);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error($e);
             DB::rollBack();
             return back()->with('error', $e->getMessage() ?: 'Something went wrong');

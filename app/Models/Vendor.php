@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\VendorStatusEnum;
+use App\Enums\VendorType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +15,9 @@ class Vendor extends Model
  protected $primaryKey = 'user_id';
     protected $fillable = ['user_id', 'status', 'store_name', 'store_address'];
 
-
+  protected $casts = [
+        'vendor_type' => VendorType::class,
+    ];
 
 public function scopeEligibleForPayout(Builder $query):Builder
 {
@@ -48,4 +51,7 @@ public function departments()
 {
     return $this->hasMany(Department::class, 'user_id', 'user_id');
 }
+
+
+
 }

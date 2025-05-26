@@ -364,33 +364,42 @@ class CartService
 
 
 
-   protected function removeItemFromDatabase(int $productId, array $optionIds): void
+protected function removeItemFromDatabase(int $productId, array $optionIds): void
 {
     $userId = Auth::id();
+
+    // Sort the input optionIds for consistent comparison
+    ksort($optionIds);
+
+    Log::info('removeItemFromDatabase called', [
+        'user_id' => $userId,
+        'product_id' => $productId,
+        'optionIds' => $optionIds,
+    ]);
 
     $cartItems = CartItem::where('user_id', $userId)
         ->where('product_id', $productId)
         ->get();
 
-    // Sort optionIds for consistent comparison
-  ksort($optionIds);
-
-$optionIdsJson = json_encode($optionIds); // {"color":5,"size":12}
-
-$cartItems = CartItem::where('user_id', $userId)
-    ->where('product_id', $productId)
-    ->where('variation_type_option_ids', $optionIdsJson)
-    ->first();
-
-    foreach ($cartItems as $cartItem) {
-        $dbOptionIds = json_decode($cartItem->variation_type_option_ids, true);
-        if (is_array($dbOptionIds)) {
-            ksort($dbOptionIds);
-            if ($dbOptionIds === $optionIds) {
-                $cartItem->delete();
-            }
+   foreach ($cartItems as $cartItem) {
+    $dbOptionIds = json_decode($cartItem->variation_type_option_ids, true);
+    if (is_array($dbOptionIds)) {
+        ksort($dbOptionIds);
+        ksort($optionIds);
+        if ($dbOptionIds === $optionIds) {
+            Log::info('Deleting cart item', ['cart_item_id' => $cartItem->id]);
+            $cartItem->delete();
+        } else {
+            Log::info('Option IDs do not match', [
+                'cart_item_id' => $cartItem->id,
+                'dbOptionIds_sorted' => $dbOptionIds,
+                'optionIds_sorted' => $optionIds,
+            ]);
         }
+    } else {
+        Log::warning('variation_type_option_ids is not array after json_decode', ['cart_item_id' => $cartItem->id]);
     }
+}
 }
 
 

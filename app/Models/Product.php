@@ -256,24 +256,14 @@ public function scopeFilterApproved($query, $departmentIds = null, $categoryIds 
 }
 
 
-
-
-
 public function vendor()
 {
    return $this->belongsTo(Vendor::class, 'created_by', 'user_id');
 }
 
-// public function products()
-// {
-//     return $this->hasManyThrough(
-//         Product::class,
-//         Category::class,
-//         'department_id', // Foreign key on categories table...
-//         'category_id',   // Foreign key on products table...
-//                  // Local key on departments table...
-//         'id'             // Local key on categories table...
-//     );
-// }
+public function bookings()
+{
+    return $this->hasMany(Booking::class);
+}
 
 }

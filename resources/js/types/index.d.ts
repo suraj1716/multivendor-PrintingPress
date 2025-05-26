@@ -145,19 +145,30 @@ export type PageProps<
   departments: Department[];
   dpts: Department[];
 };
+export type VariationSummary = {
+  type: string;
+  option: string;
+   image:string
+};
 
 export type OrderItem = {
   id: number;
   quantity: number;
   price: number;
-  variation_type_option_ids: number[];
   product: {
     id: number;
     title: string;
-    slug: string;
-    description: string;
-    image: string;
+    image?: string;
+    variationTypes: {
+      id: number;
+      name: string;
+      options: { id: number; name: string }[];
+    }[];
   };
+  variation_type_option_ids: number[];
+  variation_summary?: VariationSummary[]; // ✅ Add this line
+   attachment_path?: string;    // <-- add here
+  attachment_name?: string;
 };
 
 export type Order = {

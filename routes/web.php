@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\RolesEnum;
+use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
@@ -14,6 +15,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -78,10 +80,12 @@ Route::controller(CartController::class)->group(function () {
     Route::delete('/cart/{product}', 'destroy')->name('cart.destroy');
 });
 
+// Route::post('/stripe/webhook', function (Request $request) {
+//     Log::info('Webhook route hit', ['payload' => $request->all()]);
+//     return response('OK', 200);
+// });
+
 Route::post('/stripe/webhook', [StripeController::class, 'webhook'])->name('stripe.webhook');
-
-
-
 
 // Route::get('/dashboard', function () {
 //     return Inertia::render('Dashboard');
@@ -106,6 +110,14 @@ Route::get('/orders/{order}', [OrderController::class, 'show']);
         ->middleware(['role:' . RolesEnum::Vendor->value]);
     });
 });
+
+
+
+Route::middleware('auth')->group(function () {
+    Route::post('/bookings', [BookingController::class, 'store']);
+    Route::get('/bookings', [BookingController::class, 'index']);
+});
+
 
 
 

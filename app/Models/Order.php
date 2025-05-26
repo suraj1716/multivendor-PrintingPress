@@ -46,5 +46,10 @@ public function shippingAddress()
 {
     return $this->belongsTo(ShippingAddress::class);
 }
+public function cartItems()
+{
+    return $this->hasMany(CartItem::class);
+}
+
 
 }

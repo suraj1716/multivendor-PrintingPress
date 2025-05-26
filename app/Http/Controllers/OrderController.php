@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+namespace App\Http\Controllers;
+
 use App\Http\Resources\OrderViewResource;
 use App\Models\Order;
 use Illuminate\Http\Request;
@@ -10,31 +12,30 @@ use Inertia\Inertia;
 
 class OrderController extends Controller
 {
-
-
-public function index()
-{
-
-    $orders = Auth::user()
-        ->orders()
-        ->with(['vendorUser', 'orderItems.product'])
-        ->latest()
-        ->get();
-
-    return Inertia::render('Order/OrdersHistory', [
-    'orders' => OrderViewResource::collection($orders),
-]);
-}
-
-  public function show($orderId)
+    public function index()
     {
-  $orders = Auth::user()
-    ->orders()
-    ->with(['vendorUser.vendor', 'orderItems.product'])
-    ->latest()
-    ->get();
+        // Get all orders for the authenticated user
+        $orders = Auth::user()
+            ->orders()
+            ->with(['orderItems.product.variationTypes.options'])
+            ->latest()
+            ->get();
 
-        return new OrderViewResource($orders);
+        // Return the orders view with enriched order data
+        return Inertia::render('Order/OrdersHistory', [
+            'orders' => OrderViewResource::collection($orders),
+        ]);
     }
 
+    public function show($orderId)
+    {
+        // Fetch a single order by ID for the authenticated user
+        $order = Auth::user()
+            ->orders()
+            ->with(['vendorUser.vendor', 'orderItems.product'])
+            ->where('id', $orderId)
+            ->firstOrFail();
+
+        return new OrderViewResource($order);
+    }
 }

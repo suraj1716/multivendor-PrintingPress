@@ -29,5 +29,16 @@ class CartItem extends Model
 {
     return $this->belongsTo(User::class);
 }
+
+
+public function variationOptions()
+{
+    return $this->belongsToMany(VariationOption::class, 'cart_item_variation_option');
+}
+
+public function product()
+{
+    return $this->belongsTo(Product::class);
+}
 }
 

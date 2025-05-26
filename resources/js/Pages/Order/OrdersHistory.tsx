@@ -6,6 +6,7 @@ import { PageProps, PaginationProps, Order } from '@/types';
 export default function OrdersHistory() {
   const { orders } = usePage<PageProps<{ orders: PaginationProps<Order> }>>().props;
 
+  console.log(orders);
   return (
     <AuthenticatedLayout
       header={
@@ -42,6 +43,10 @@ export default function OrdersHistory() {
                 <thead>
                   <tr className="bg-gray-100">
                     <th className="border p-2 text-left">Product</th>
+                    <th className="border p-2 text-left">Product Variation</th>
+
+                    <th className="border p-2 text-left">attach</th>
+
                     <th className="border p-2 text-left w-12">Qty</th>
                     <th className="border p-2 text-left w-24">Price</th>
                   </tr>
@@ -59,6 +64,45 @@ export default function OrdersHistory() {
                           {item.product.title}
                         </Link>
                       </td>
+                      <td className="border p-2">
+                        {item.variation_summary && item.variation_summary.length > 0 ? (
+                          item.variation_summary.map((v, i) => (
+                            <div key={i}>
+                              <span className="font-semibold">{v.type}:</span> {v.option}
+                            </div>
+                          ))
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                    <td className="border p-2">
+  {item.attachment_path ? (
+    /\.(jpe?g|png|gif|bmp|webp)(\?.*)?$/i.test(item.attachment_path) ? (
+      <img
+        src={`/storage/${item.attachment_path}`}
+        alt={item.attachment_name || 'Attachment preview'}
+        className="w-16 h-16 object-cover rounded border"
+        onError={(e) => {
+          e.currentTarget.style.display = 'none';
+        }}
+      />
+    ) : (
+      <a
+        href={`/storage/${item.attachment_path}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-600 hover:underline"
+      >
+        {item.attachment_name || 'Download Attachment'}
+      </a>
+    )
+  ) : (
+    <span className="text-gray-400">—</span>
+  )}
+</td>
+
+
+
                       <td className="border p-2">{item.quantity}</td>
                       <td className="border p-2">${Number(item.price).toFixed(2)}</td>
                     </tr>
