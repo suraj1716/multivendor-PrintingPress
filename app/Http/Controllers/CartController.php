@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Enums\OrderStatusEnum;
+use App\Models\Booking;
+use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -27,6 +29,7 @@ class CartController extends Controller
     public function index(CartService $cartService, Request $request)
     {
         $user = Auth::user();
+        $userId = $user ? $user->id : null;
         if ($user) {
             $shippingAddresses = ShippingAddress::where('user_id', $user->id)
                 ->get();
@@ -34,13 +37,38 @@ class CartController extends Controller
             $shippingAddresses = [];
         }
 
-        Log::info('Cart Items Cookie:', ['cookie' => Cookie::get('cartItems')]);
+
+        $hasEcommerceVendor = false;
+
+        if ($user) {
+            $hasEcommerceVendor = CartItem::where('user_id', $user->id)
+                ->whereHas('product.user.vendor', function ($query) {
+                    $query->where('vendor_type', 'ecommerce');
+                })
+                ->exists();
+        }
+
+
+
+        $hasAppointmentVendor = false;
+        if ($user) {
+            $hasAppointmentVendor = CartItem::where('user_id', $user->id)
+                ->whereHas('product.user.vendor', function ($query) {
+                    $query->where('vendor_type', 'appointment');
+                })
+                ->exists();
+        }
+
+
+
+
         return Inertia::render('Cart/Index', [
             'cartItems' => $cartService->getCartItemsGrouped(),
-            // 'miniCartItems' => $cartService->getMiniCartItems(), // You must add this
-            'totalQuantity' => $cartService->getTotalQuantity(), // And this
-            'totalPrice' => $cartService->getTotalPrice(),       // And this
+            'totalQuantity' => $cartService->getTotalQuantity(),
+            'totalPrice' => $cartService->getTotalPrice(),
             'shippingAddresses' => $shippingAddresses,
+            'showShippingForm' => $hasEcommerceVendor,  // <-- new prop
+            'showBookingWidget' => $hasAppointmentVendor,
             'csrf_token' => csrf_token(),
         ]);
     }
@@ -80,18 +108,17 @@ class CartController extends Controller
     public function update(Request $request, Product $product, CartService $cartService)
     {
         $request->validate([
-    'quantity' => ['integer', 'min:1'],
-    'attachment_path' => ['nullable', 'string'], // validate attachment path if passed as string
-]);
+            'quantity' => ['integer', 'min:1'],
+            'attachment_path' => ['nullable', 'string'], // validate attachment path if passed as string
+        ]);
 
-$optionIds = $request->input('option_ids');
-$quantity = $request->input('quantity');
-$attachmentPath = $request->input('attachment_path'); // get attachment from request
+        $optionIds = $request->input('option_ids');
+        $quantity = $request->input('quantity');
+        $attachmentPath = $request->input('attachment_path'); // get attachment from request
 
-$cartService->updateItemQuantity($product->id, $quantity, $optionIds, $attachmentPath);
+        $cartService->updateItemQuantity($product->id, $quantity, $optionIds, $attachmentPath);
 
-return back()->with('success', 'Product quantity and attachment updated successfully.');
-
+        return back()->with('success', 'Product quantity and attachment updated successfully.');
     }
 
 
@@ -108,7 +135,8 @@ return back()->with('success', 'Product quantity and attachment updated successf
 
     public function checkout(Request $request, CartService $cartService)
     {
-         Log::info('Checkout method called', ['user_id' => $request->user()->id ?? 'guest']);
+        Log::info('Checkout method called', ['user_id' => $request->user()->id ?? 'guest']);
+
         $request->validate([
             'vendor_id' => ['nullable', 'integer'],
             'shipping_address_id' => ['required', 'exists:shipping_addresses,id'],
@@ -145,6 +173,17 @@ return back()->with('success', 'Product quantity and attachment updated successf
 
                 $orders[] = $order;
 
+                // ✅ Try linking the most recent unlinked booking (optional)
+                $latestBooking = Booking::where('user_id', $request->user()->id)
+                    ->whereNull('order_id')
+                    ->latest()
+                    ->first();
+
+                if ($latestBooking) {
+                    $latestBooking->order_id = $order->id;
+                    $latestBooking->save();
+                }
+
                 foreach ($cartItems as $cartItem) {
                     OrderItem::create([
                         'order_id' => $order->id,
@@ -153,20 +192,18 @@ return back()->with('success', 'Product quantity and attachment updated successf
                         'price' => $cartItem['price'],
                         'variation_type_option_ids' => $cartItem['option_ids'],
                         'attachment_path' => $cartItem['attachment_path'] ?? null,
-    'attachment_name' => $cartItem['attachment_name'] ?? null,
+                        'attachment_name' => $cartItem['attachment_name'] ?? null,
                     ]);
 
                     $description = collect($cartItem['options'])->map(fn($item) => "{$item['type']['name']}::{$item['name']}")->implode(',');
 
                     $productData = [
                         'name' => $cartItem['title'],
-                        // 'images' => [$cartItem['image_url']],
                     ];
 
                     if (!empty($description)) {
                         $productData['description'] = $description;
                     }
-
 
                     $lineItem = [
                         'price_data' => [
@@ -179,7 +216,6 @@ return back()->with('success', 'Product quantity and attachment updated successf
 
                     $lineItems[] = $lineItem;
                 }
-
             }
 
             $session = Session::create([

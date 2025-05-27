@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Enums\VendorStatusEnum;
+use App\Enums\VendorType;
 use App\Filament\Resources\VendorResource\Pages;
 use App\Models\Vendor;
 use Filament\Forms;
@@ -37,6 +38,25 @@ class VendorResource extends Resource
                     ->label('Store Name')
                     ->sortable()
                     ->searchable(),
+
+   // Display vendor type as text with labels
+TextColumn::make('vendor_type')
+    ->label('Vendor Type')
+    ->sortable()
+    ->searchable()
+    ->formatStateUsing(fn ($state) => VendorType::labels()[$state] ?? $state),
+
+// Select dropdown to update vendor type with options from enum labels
+SelectColumn::make('vendor_type')
+    ->label('Update Vendor Type')
+    ->options(VendorType::labels())   // pass the array of [value => label]
+    ->rules(['required'])
+    ->searchable()
+    ->sortable()
+    ->afterStateUpdated(function ($record, $state) {
+        $record->vendor_type = $state;
+        $record->save();
+    }),
 
                 TextColumn::make('status')
                     ->label('Status')

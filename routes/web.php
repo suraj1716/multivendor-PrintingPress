@@ -113,10 +113,20 @@ Route::get('/orders/{order}', [OrderController::class, 'show']);
 
 
 
+// RESTful resource routes for BookingController (index, store, update, destroy)
 Route::middleware('auth')->group(function () {
-    Route::post('/bookings', [BookingController::class, 'store']);
-    Route::get('/bookings', [BookingController::class, 'index']);
+    Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
+    Route::post('/bookings/store', [BookingController::class, 'store'])->name('bookings.store');
+    Route::put('/bookings/{booking}', [BookingController::class, 'update'])->name('bookings.update');
+    Route::delete('/bookings/{booking}', [BookingController::class, 'destroy'])->name('bookings.destroy');
+
+    // Additional routes for confirm and cancel actions
+    Route::post('/bookings/{booking}/confirm', [BookingController::class, 'confirm'])->name('bookings.confirm');
+    Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
+    Route::get('/booking/available-slots', [BookingController::class, 'getAvailableSlots'])
+    ->name('available-slots');
 });
+
 
 
 

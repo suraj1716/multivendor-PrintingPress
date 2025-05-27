@@ -27,6 +27,7 @@ class OrderController extends Controller
         ]);
     }
 
+
     public function show($orderId)
     {
         // Fetch a single order by ID for the authenticated user

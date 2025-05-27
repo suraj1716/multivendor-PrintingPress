@@ -33,7 +33,7 @@ class CartItem extends Model
 
 public function variationOptions()
 {
-    return $this->belongsToMany(VariationOption::class, 'cart_item_variation_option');
+    return $this->belongsToMany(variationOptions::class, 'cart_item_variation_option');
 }
 
 public function product()

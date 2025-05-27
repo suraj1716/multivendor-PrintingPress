@@ -3,114 +3,98 @@
 namespace App\Filament\Resources;
 
 use App\Enums\OrderStatusEnum;
-use App\Filament\Resources\OrderResource\Pages;
 use App\Models\Order;
 use App\Models\VariationTypeOption;
-use Filament\Forms;
-use Filament\Resources\Form;
 use Filament\Resources\Resource;
-use Filament\Tables\Table;
-use Filament\Tables\Columns\SelectColumn;
-
 use Filament\Tables;
-use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\SelectColumn;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 
-class OrderResource extends Resource
-{
-    protected static ?string $model = Order::class;
+// Add this:
+use App\Filament\Resources\BookingResource\Pages;
 
-    public static function table(Table $table): Table
+class BookingResource extends Resource
+{
+ protected static ?string $model = Order::class;
+
+    protected static ?string $navigationIcon = 'heroicon-o-calendar';
+    protected static ?string $navigationLabel = 'Bookings';
+    protected static ?int $navigationSort = 2;
+
+    public static function table(Tables\Table $table): Tables\Table
     {
         return $table
-
             ->columns([
-                Tables\Columns\TextColumn::make('id')
-                    ->sortable()->searchable()
+                TextColumn::make('id')
+                    ->sortable()
+                    ->searchable()
                     ->label('Order ID'),
 
-                Tables\Columns\TextColumn::make('vendorUser.vendor.user_id')
+                TextColumn::make('vendorUser.vendor.user_id')
                     ->label('Vendor Id'),
 
-                Tables\Columns\TextColumn::make('vendorUser.vendor.store_name')
+                TextColumn::make('vendorUser.vendor.store_name')
                     ->label('Vendor Store'),
 
-                Tables\Columns\TextColumn::make('total_price')
+                TextColumn::make('total_price')
                     ->money('AUD')
                     ->label('Total'),
 
-                Tables\Columns\TextColumn::make('payment_status')
+                TextColumn::make('payment_status')
                     ->label('Payment Status')
-                    ->getStateUsing(function ($record) {
-                        return $record->vendor_subtotal ? 'paid' : 'draft';
-                    })
+                    ->getStateUsing(fn($record) => $record->vendor_subtotal ? 'paid' : 'draft')
                     ->sortable()
                     ->searchable(),
 
 
-            // {-- this table returns rows that have booking.booking_date== null, so hiding this columns--}
 
-                // Tables\Columns\TextColumn::make('booking.booking_date')
-                //     ->label('Booking Date')
-                //     ->date(),
+                TextColumn::make('booking.booking_date')
+                    ->label('Booking Date')
+                    ->date(),
 
-                // Tables\Columns\TextColumn::make('booking.time_slot')
-                //     ->label('Time Slot'),
+                TextColumn::make('booking.time_slot')
+                    ->label('Time Slot'),
 
-
-
-                Tables\Columns\TextColumn::make('attachment_path')
+                TextColumn::make('attachment_path')
                     ->label('Attachment')
-                    ->getStateUsing(function (Order $record) {
-                        return optional($record->orderItems()->first())->attachment_path ?? 'No attachment';
-                    })
+                    ->getStateUsing(fn(Order $record) => optional($record->orderItems()->first())->attachment_path ?? 'No attachment')
                     ->url(fn(Order $record) => optional($record->orderItems()->first())->attachment_path ? asset('storage/' . $record->orderItems()->first()->attachment_path) : null)
                     ->openUrlInNewTab()
                     ->extraAttributes(['style' => 'max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;']),
 
-
-                Tables\Columns\TextColumn::make('variation_images')
+                TextColumn::make('variation_images')
                     ->label('Variation Images')
                     ->getStateUsing(function (Order $record) {
                         $allVariations = [];
-
                         foreach ($record->orderItems as $item) {
                             $variationStrings = [];
                             $variationIds = $item->variation_type_option_ids;
-
                             if (is_array($variationIds) && count($variationIds)) {
                                 foreach ($variationIds as $optionId) {
                                     $option = VariationTypeOption::with('variationType', 'media')->find($optionId);
                                     if ($option) {
                                         $image = $option->getMedia('images')->first();
                                         $imageUrl = $image ? $image->getUrl('thumb') : null;
-
                                         $variationName = $option->variationType->name ?? 'N/A';
                                         $optionName = $option->name ?? 'N/A';
-
                                         $imageTag = $imageUrl
                                             ? "<img src='{$imageUrl}' alt='{$optionName}' style='width:30px; height:30px; object-fit:contain; margin-right:8px; border:1px solid #ccc; border-radius:4px;' />"
                                             : '';
-
-                                        // Wrap image and text in a flex container for side-by-side layout
                                         $variationStrings[] = "<div style='display:flex; align-items:center; margin-bottom:4px;'>{$imageTag}<span>{$variationName}: {$optionName}</span></div>";
                                     }
                                 }
                             }
-
                             $allVariations[] = implode('', $variationStrings);
                         }
-
                         return implode('<hr style="margin:8px 0;">', $allVariations);
                     })
                     ->html()
                     ->wrap()
                     ->toggleable(),
 
-
-                Tables\Columns\SelectColumn::make('status')
+                SelectColumn::make('status')
                     ->label('Status')
                     ->options(
                         collect(OrderStatusEnum::cases())
@@ -125,7 +109,7 @@ class OrderResource extends Resource
                         $record->save();
                     }),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->dateTime('Y-m-d H:i')
                     ->label('Date'),
             ])
@@ -137,18 +121,25 @@ class OrderResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListOrders::route('/'),
-            'view' => Pages\ViewOrder::route('/{record}'),
+            'index' => Pages\ListBookings::route('/'),
+            // 'view' => Pages\ViewBooking::route('/{record}'),
         ];
     }
 
-
-
-    public static function getTableQuery(): Builder
+     protected function getTableQuery(): Builder
     {
-        $userId = Auth::id();
-        return parent::getTableQuery()
-            ->with(['vendorUser', 'booking'])
-            ->where('vendor_user_id', $userId);
+        $user = Auth::user();
+        // If Admin, return all orders
+        $query = parent::getTableQuery()->whereHas('booking', function ($query) {
+            $query->whereNotNull('booking_date');
+        });
+
+        if ($user->hasRole(\App\Enums\RolesEnum::Admin->value)) {
+            // Admin sees all orders that have a booking with booking_date
+            return $query;
+        }
+
+        // Non-admin users: filter by vendor_user_id and booking with booking_date
+        return $query->where('vendor_user_id', $user->id);
     }
 }

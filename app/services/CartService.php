@@ -47,8 +47,13 @@ class CartService
 
         ksort($optionIds); // ensures consistent key order
 
-        $submittedPrice = request()->input('price');
-        $price = $submittedPrice;
+     $submittedPrice = request()->input('price');
+
+if (is_numeric($submittedPrice) && $submittedPrice > 0) {
+    $price = $submittedPrice;
+} else {
+    $price = $product->price; // or some default price logic
+}
 
         $attachmentPath = null;
         if (request()->hasFile('attachment')) {

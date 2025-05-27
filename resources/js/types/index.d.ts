@@ -1,5 +1,8 @@
 import { Config } from "ziggy-js";
 
+
+
+
 export interface User {
   id: number;
   name: string;
@@ -11,6 +14,7 @@ export interface User {
     status_label: string;
     store_name: string;
     store_address: string;
+    vendor_type: string;
     cover_image: string;
   };
 }
@@ -75,6 +79,12 @@ export type Image = {
   large: string;
 };
 
+
+export interface Booking {
+  booking_date: string;
+  time_slot: string;
+  notes: string;
+}
 export type CartItem = {
   id: number;
   product_id: number;
@@ -86,7 +96,9 @@ export type CartItem = {
   option_ids: Record<string, number>;
   options: VariationTypeOption[];
   attachment_path: string,
-   attachment_name: string
+   attachment_name: string,
+   booking: Booking[] | null; // Nullable booking field
+
 };
 
 export type GroupedCartItems = {
@@ -169,6 +181,7 @@ export type OrderItem = {
   variation_summary?: VariationSummary[]; // ✅ Add this line
    attachment_path?: string;    // <-- add here
   attachment_name?: string;
+  booking?: Booking;
 };
 
 export type Order = {
@@ -176,12 +189,13 @@ export type Order = {
   total_price: number;
   status: string;
   created_at: string;
-  vendorUser: {
+  vendor: {
     id: string;
     name: string;
     email: string;
     store_name: string;
     store_address: string;
+    vendor_type: string;
   };
 
   orderItems: OrderItem[];
@@ -191,6 +205,7 @@ export type Vendor = {
   id: number;
   store_name: string;
   store_address: string;
+  vendor_type: string;
 };
 
 export type Category = {

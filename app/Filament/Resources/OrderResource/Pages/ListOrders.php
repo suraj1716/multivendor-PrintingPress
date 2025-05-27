@@ -12,16 +12,23 @@ class ListOrders extends ListRecords
 {
     protected static string $resource = OrderResource::class;
 
-    protected function getTableQuery(): Builder
-    {$user = Auth::user();
-          // If Admin, return all orders
-      if ($user->hasRole(\App\Enums\RolesEnum::Admin->value)) {
-        // Admin sees all orders
-        return parent::getTableQuery();
-    }
+     protected function getTableQuery(): Builder
+    {
+        $user = Auth::user();
 
-    // Otherwise, filter orders by vendor_user_id
-    return parent::getTableQuery()
-        ->where('vendor_user_id', $user->id);
+        $query = parent::getTableQuery()
+            ->with(['vendorUser', 'booking'])
+            ->where(function ($query) {
+                $query->whereDoesntHave('booking')
+                    ->orWhereHas('booking', function ($q) {
+                        $q->whereNull('booking_date');
+                    });
+            });
+
+        if ($user->hasRole(\App\Enums\RolesEnum::Admin->value)) {
+            return $query;
+        }
+
+        return $query->where('vendor_user_id', $user->id);
     }
 }

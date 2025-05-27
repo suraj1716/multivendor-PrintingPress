@@ -51,5 +51,9 @@ public function cartItems()
     return $this->hasMany(CartItem::class);
 }
 
+public function booking()
+{
+    return $this->hasOne(Booking::class, 'order_id');
+}
 
 }

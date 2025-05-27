@@ -13,7 +13,7 @@ class Vendor extends Model
 {
    use HasFactory;
  protected $primaryKey = 'user_id';
-    protected $fillable = ['user_id', 'status', 'store_name', 'store_address'];
+    protected $fillable = ['user_id', 'status', 'store_name', 'store_address', 'vendor_type'];
 
   protected $casts = [
         'vendor_type' => VendorType::class,
