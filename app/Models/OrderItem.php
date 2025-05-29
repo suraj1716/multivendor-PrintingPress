@@ -27,5 +27,9 @@ class OrderItem extends Model
     }
 
 
+public function booking()
+{
+    return $this->belongsTo(Booking::class); // or correct FK name here
+}
 
 }

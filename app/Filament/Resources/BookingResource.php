@@ -20,6 +20,7 @@ class BookingResource extends Resource
  protected static ?string $model = Order::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
+     protected static ?string $title = 'Bookings';
     protected static ?string $navigationLabel = 'Bookings';
     protected static ?int $navigationSort = 2;
 
@@ -57,37 +58,45 @@ class BookingResource extends Resource
                 TextColumn::make('booking.time_slot')
                     ->label('Time Slot'),
 
-                TextColumn::make('attachment_path')
-                    ->label('Attachment')
-                    ->getStateUsing(fn(Order $record) => optional($record->orderItems()->first())->attachment_path ?? 'No attachment')
-                    ->url(fn(Order $record) => optional($record->orderItems()->first())->attachment_path ? asset('storage/' . $record->orderItems()->first()->attachment_path) : null)
-                    ->openUrlInNewTab()
-                    ->extraAttributes(['style' => 'max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;']),
+                // TextColumn::make('attachment_path')
+                //     ->label('Attachment')
+                //     ->getStateUsing(fn(Order $record) => optional($record->orderItems()->first())->attachment_path ?? 'No attachment')
+                //     ->url(fn(Order $record) => optional($record->orderItems()->first())->attachment_path ? asset('storage/' . $record->orderItems()->first()->attachment_path) : null)
+                //     ->openUrlInNewTab()
+                //     ->extraAttributes(['style' => 'max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;']),
 
-                TextColumn::make('variation_images')
+         Tables\Columns\TextColumn::make('variation_images')
                     ->label('Variation Images')
                     ->getStateUsing(function (Order $record) {
                         $allVariations = [];
+
                         foreach ($record->orderItems as $item) {
                             $variationStrings = [];
                             $variationIds = $item->variation_type_option_ids;
+
                             if (is_array($variationIds) && count($variationIds)) {
                                 foreach ($variationIds as $optionId) {
                                     $option = VariationTypeOption::with('variationType', 'media')->find($optionId);
                                     if ($option) {
                                         $image = $option->getMedia('images')->first();
                                         $imageUrl = $image ? $image->getUrl('thumb') : null;
+
                                         $variationName = $option->variationType->name ?? 'N/A';
                                         $optionName = $option->name ?? 'N/A';
+
                                         $imageTag = $imageUrl
                                             ? "<img src='{$imageUrl}' alt='{$optionName}' style='width:30px; height:30px; object-fit:contain; margin-right:8px; border:1px solid #ccc; border-radius:4px;' />"
                                             : '';
+
+                                        // Wrap image and text in a flex container for side-by-side layout
                                         $variationStrings[] = "<div style='display:flex; align-items:center; margin-bottom:4px;'>{$imageTag}<span>{$variationName}: {$optionName}</span></div>";
                                     }
                                 }
                             }
+
                             $allVariations[] = implode('', $variationStrings);
                         }
+
                         return implode('<hr style="margin:8px 0;">', $allVariations);
                     })
                     ->html()
@@ -122,7 +131,7 @@ class BookingResource extends Resource
     {
         return [
             'index' => Pages\ListBookings::route('/'),
-            // 'view' => Pages\ViewBooking::route('/{record}'),
+            'view' => Pages\ViewBooking::route('/{record}'),
         ];
     }
 

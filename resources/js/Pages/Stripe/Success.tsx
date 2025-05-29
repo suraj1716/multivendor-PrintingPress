@@ -31,7 +31,7 @@ function Success({ orders }: PageProps<{ orders: Order[] }>) {
               <div className="text-gray-400">Seller</div>
               <div>
                 <Link href="#" className="hover:underline">
-                  {order.vendorUser.store_name}
+                  {order.vendor.store_name}
                 </Link>
               </div>
             </div>

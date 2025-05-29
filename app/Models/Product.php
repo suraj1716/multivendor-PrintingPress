@@ -186,6 +186,7 @@ public function scopeSearchKeyword($query, $keyword)
 
     public function getFirstOptionsMap(): array
     {
+
         return $this->variationTypes
             ->mapWithKeys(fn($type) => [$type->id => $type->options[0]?->id])
             ->toArray();
@@ -264,6 +265,11 @@ public function vendor()
 public function bookings()
 {
     return $this->hasMany(Booking::class);
+}
+
+public function reviews()
+{
+    return $this->hasMany(Review::class);
 }
 
 }

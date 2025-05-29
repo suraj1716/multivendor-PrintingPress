@@ -34,10 +34,10 @@ const AvailableSlots: React.FC<AvailableSlotsProps> = ({
     return slotTime.isSameOrAfter(cutoffTime);
   });
 
-  // Debug logs
-  console.log("Now:", now.format("YYYY-MM-DD h:mm a"));
-  console.log("Cutoff Time (+2h):", cutoffTime.format("YYYY-MM-DD h:mm a"));
-  console.log("Filtered Slots:", filteredSlots);
+  // // Debug logs
+  // console.log("Now:", now.format("YYYY-MM-DD h:mm a"));
+  // console.log("Cutoff Time (+2h):", cutoffTime.format("YYYY-MM-DD h:mm a"));
+  // console.log("Filtered Slots:", filteredSlots);
 
   return (
     <div className="p-4">

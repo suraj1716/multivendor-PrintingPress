@@ -12,31 +12,34 @@ use Inertia\Inertia;
 
 class OrderController extends Controller
 {
-    public function index()
-    {
-        // Get all orders for the authenticated user
-        $orders = Auth::user()
-            ->orders()
-            ->with(['orderItems.product.variationTypes.options'])
-            ->latest()
-            ->get();
+   public function index()
+{
+    $orders = Auth::user()
+        ->orders()
+        ->with([
+            'orderItems.product.variationTypes.options',
+            'booking' // will return null for orders without bookings
+        ])
+        ->latest()
+        ->get();
 
-        // Return the orders view with enriched order data
-        return Inertia::render('Order/OrdersHistory', [
-            'orders' => OrderViewResource::collection($orders),
-        ]);
-    }
+    return Inertia::render('Order/OrdersHistory', [
+        'orders' => OrderViewResource::collection($orders),
+    ]);
+}
 
 
-    public function show($orderId)
-    {
-        // Fetch a single order by ID for the authenticated user
-        $order = Auth::user()
-            ->orders()
-            ->with(['vendorUser.vendor', 'orderItems.product'])
-            ->where('id', $orderId)
-            ->firstOrFail();
 
-        return new OrderViewResource($order);
-    }
+public function show($orderId)
+{
+   $order = Order::with([
+    'orderItems.product',
+    'orderItems.booking', // Make sure this line is added
+    'vendor.vendor',
+    'shippingAddress'
+])->findOrFail($orderId);
+
+    return new OrderViewResource($order);
+}
+
 }

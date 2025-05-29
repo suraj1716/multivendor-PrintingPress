@@ -6,7 +6,7 @@ import { PageProps, PaginationProps, Order } from '@/types';
 export default function OrdersHistory() {
   const { orders } = usePage<PageProps<{ orders: PaginationProps<Order> }>>().props;
 
-  console.log(orders);
+
   return (
     <AuthenticatedLayout
       header={

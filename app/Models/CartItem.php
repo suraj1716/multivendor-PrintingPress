@@ -4,6 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+
+/**
+ * @property array|null $variation_type_option_ids
+ */
+
 class CartItem extends Model
 {
     /**
@@ -21,7 +26,9 @@ class CartItem extends Model
         'variation_type_option_ids',
         // other fields...
     ];
-    protected $casts = [
+
+
+  protected $casts = [
         'variation_type_option_ids' => 'array',
     ];
 
@@ -31,9 +38,9 @@ class CartItem extends Model
 }
 
 
-public function variationOptions()
+public function VariationTypeOption()
 {
-    return $this->belongsToMany(variationOptions::class, 'cart_item_variation_option');
+    return $this->belongsToMany(VariationTypeOption::class, 'cart_item_variation_option');
 }
 
 public function product()

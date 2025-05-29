@@ -19,21 +19,18 @@ class CartService
 
     public function addItemToCart(Product $product, int $quantity = 1, $optionIds = null)
     {
-        $optionIds = request()->input('option_ids', $optionIds);
-
-        if ($optionIds === null) {
-            $optionIds = $product->getFirstOptionsMap(); // fallback to default variation
+        $optionIds = $this->normalizeOptionIds($optionIds ?? request()->input('option_ids'));
+        if (empty($optionIds)) {
+            $optionIds = $product->getFirstOptionsMap(); // fallback
         }
 
-        if (is_string($optionIds)) {
-            $optionIds = json_decode($optionIds, true) ?: [];
-        }
+        ksort($optionIds);
 
-        if (!is_array($optionIds)) {
-            $optionIds = [];
-        }
+        $submittedPrice = request()->input('price');
+        $price = (is_numeric($submittedPrice) && $submittedPrice > 0) ? $submittedPrice : $product->price;
 
-        //handle attachments
+        $attachmentPath = null;
+        $attachmentFileName = null;
         if (request()->hasFile('attachment')) {
             $file = request()->file('attachment');
             request()->validate([
@@ -43,42 +40,23 @@ class CartService
             $attachmentPath = $file->storeAs('attachments', $attachmentFileName, 'public');
         }
 
-
-
-        ksort($optionIds); // ensures consistent key order
-
-     $submittedPrice = request()->input('price');
-
-if (is_numeric($submittedPrice) && $submittedPrice > 0) {
-    $price = $submittedPrice;
-} else {
-    $price = $product->price; // or some default price logic
-}
-
-        $attachmentPath = null;
-        if (request()->hasFile('attachment')) {
-            $file = request()->file('attachment');
-
-            request()->validate([
-                'attachment' => 'file|mimes:jpeg,png,pdf|max:2048',
-            ]);
-
-            $attachmentPath = $file->store('attachments', 'public');
-        }
-
-        Log::debug('Preparing to save cart item', [
-            'user_id' => Auth::id(),
-            'option_ids' => $optionIds,
-        ]);
+        // dd([
+        //     'product_id' => $product->id,
+        //     'quantity' => $quantity,
+        //     'price' => $price,
+        //     'optionIds' => $optionIds,
+        //     'attachmentPath' => $attachmentPath,
+        //     'attachmentFileName' => $attachmentFileName,
+        //     'user_id' => Auth::id(),
+        // ]);
 
         if (Auth::check()) {
-            Log::debug('Saving cart item to data');
-            $this->saveItemToDatabase($product->id, $quantity, $price, $optionIds, $attachmentPath, $attachmentFileName ?? null);
+            $this->saveItemToDatabase($product->id, $quantity, $price, $optionIds, $attachmentPath, $attachmentFileName);
         } else {
-            Log::debug('Saving cart item to cookie', [$product->id, $quantity, $price, $optionIds, $attachmentPath, $attachmentFileName ?? null]);
-            $this->saveItemToCookies($product->id, $quantity, $price, $optionIds, $attachmentPath, $attachmentFileName ?? null);
+            $this->saveItemToCookies($product->id, $quantity, $price, $optionIds, $attachmentPath, $attachmentFileName);
         }
     }
+
 
 
     public function updateItemQuantity(int $productId, int $quantity, $optionIds = null)
@@ -97,6 +75,7 @@ if (is_numeric($submittedPrice) && $submittedPrice > 0) {
             $this->updateItemQuantityInCookies($productId, $quantity, $optionIds);
         }
     }
+
 
     public function removeItemFromCart(int $productId, $optionIds = null)
     {
@@ -202,7 +181,7 @@ if (is_numeric($submittedPrice) && $submittedPrice > 0) {
                             'name' => $product->user->vendor->store_name ?? null,
                         ],
                         'attachment_path' => $cartItem['attachment_path'] ?? null,
-                        'attachment_name'=>$cartItem['attachment_name']?? null
+                        'attachment_name' => $cartItem['attachment_name'] ?? null
 
                     ];
                 }
@@ -233,19 +212,56 @@ if (is_numeric($submittedPrice) && $submittedPrice > 0) {
     protected function updateItemQuantityInDatabase(int $productId, int $quantity, array $optionIds): void
     {
         $userId = Auth::id();
-        $encodedOptionIds = json_encode($optionIds);
 
+        $optionIds = $this->normalizeOptionIds($optionIds);
+        // No need for second ksort here since normalize does it already
+        // $encodedOptionIds = json_encode($optionIds);
+
+        Log::debug('Update quantity called', [
+            'user_id' => $userId,
+            'product_id' => $productId,
+            'quantity' => $quantity,
+            'normalized_option_ids' => $optionIds,
+            'encoded_option_ids' => $optionIds,
+        ]);
+
+        $cartItems = $this->getCartItemsFromDatabase();
+
+        // Build a map keyed by productId_encodedOptionIds
+        $cartItemsMap = [];
+        foreach ($cartItems as $item) {
+            // Normalize option_ids here in case they come raw from DB
+            $normOptionIds = $this->normalizeOptionIds($item['option_ids']);
+            $key = $item['product_id'] . '_' . json_encode($normOptionIds);
+            $cartItemsMap[$key] = $item;
+        }
+
+        $itemKey = $productId . '_' .  $optionIds;
+
+        if (isset($cartItemsMap[$itemKey])) {
+            Log::debug('Item key found in cartItemsMap', ['itemKey' => $itemKey]);
+            $cartItemsMap[$itemKey]['quantity'] = $quantity;
+        } else {
+            Log::debug('Item key NOT found in cartItemsMap', ['itemKey' => $itemKey]);
+        }
+
+        // Now update DB item directly
         $cartItem = CartItem::where('user_id', $userId)
             ->where('product_id', $productId)
-            ->where('variation_type_option_ids', $encodedOptionIds)
+            ->where('variation_type_option_ids', $$optionIds)
             ->first();
 
         if ($cartItem) {
+            Log::debug('CartItem found in DB', ['cartItem_id' => $cartItem->id]);
             $cartItem->update([
                 'quantity' => $quantity,
             ]);
+            Log::debug('CartItem quantity updated');
+        } else {
+            Log::debug('No CartItem found in DB');
         }
     }
+
 
     protected function updateItemQuantityInCookies(int $productId, int $quantity, array $optionIds): void
     {
@@ -263,56 +279,55 @@ if (is_numeric($submittedPrice) && $submittedPrice > 0) {
         Cookie::queue(self::COOKIE_NAME, json_encode($cartItems), self::COOKIE_LIFETIME);
     }
 
-  protected function saveItemToDatabase(
-    int $productId,
-    int $quantity,
-    $price,
-    array $optionIds,
-    ?string $attachmentPath = null,
-    ?string $attachmentFileName = null
-): void {
-    $userId = Auth::id();
-    ksort($optionIds);
-    $optionIds = array_map('strval', $optionIds);
-    $encodedOptionIds = json_encode($optionIds);
+    protected function saveItemToDatabase(
+        int $productId,
+        int $quantity,
+        $price,
+        array $optionIds,
+        ?string $attachmentPath = null,
+        ?string $attachmentFileName = null
+    ): void {
+        $userId = Auth::id();
 
-    $cartItem = CartItem::where('user_id', $userId)
-        ->where('product_id', $productId)
-        ->where('variation_type_option_ids', $encodedOptionIds)
-        ->first();
+        $optionIds = $this->normalizeOptionIds($optionIds);
+        ksort($optionIds); // ensure consistent key order
+        $encodedOptionIds = json_encode($optionIds); // for DB comparison and storage
 
-    if ($cartItem) {
-        $updateData = [
-            'quantity' => DB::raw('quantity + ' . $quantity),
-        ];
+        $cartItem = CartItem::where('user_id', $userId)
+            ->where('product_id', $productId)
+            ->where('variation_type_option_ids',  $encodedOptionIds)
+            ->first();
 
-        if ($attachmentPath !== null) {
-            $updateData['attachment_path'] = $attachmentPath;
+        if ($cartItem) {
+            $updateData = [
+                'quantity' => DB::raw('quantity + ' . $quantity),
+            ];
+
+            if ($attachmentPath !== null) {
+                $updateData['attachment_path'] = $attachmentPath;
+            }
+            if ($attachmentFileName !== null) {
+                $updateData['attachment_name'] = $attachmentFileName;
+            }
+
+            $cartItem->update($updateData);
+
+            Log::debug('Cart item updated', $updateData);
+        } else {
+            CartItem::create([
+                'user_id' => $userId,
+                'product_id' => $productId,
+                'quantity' => $quantity,
+                'variation_type_option_ids' =>  $optionIds,
+                'price' => $price,
+                'attachment_path' => $attachmentPath,
+                'attachment_name' => $attachmentFileName,
+            ]);
+
+            Log::debug('Cart item created');
         }
-        if ($attachmentFileName !== null) {
-            $updateData['attachment_name'] = $attachmentFileName;
-        }
-
-        $cartItem->update($updateData);
-    } else {
-        CartItem::create([
-            'user_id' => $userId,
-            'product_id' => $productId,
-            'quantity' => $quantity,
-            'variation_type_option_ids' => $encodedOptionIds,
-            'price' => $price,
-            'attachment_path' => $attachmentPath,
-            'attachment_name' => $attachmentFileName,
-        ]);
     }
-   Log::info('Checking existing cart item', [
-    'user_id' => $userId,
-    'product_id' => $productId,
-    'variation_type_option_ids' => $encodedOptionIds,
-       'attachment_path' => $attachmentPath,
-            'attachment_name' => $attachmentFileName,
-]);
-}
+
 
 
 
@@ -321,91 +336,87 @@ if (is_numeric($submittedPrice) && $submittedPrice > 0) {
 
 
     protected function saveItemToCookies(
-    int $productId,
-    int $quantity,
-    $price,
-    $optionIds,
-    ?string $attachmentPath = null,
-    ?string $attachmentFileName = null
-): void {
-    // Normalize option IDs
-    if (is_string($optionIds)) {
-        $decoded = json_decode($optionIds, true);
-        $optionIds = is_array($decoded) ? $decoded : [];
-    } elseif (!is_array($optionIds)) {
-        $optionIds = [];
-    }
-
-    ksort($optionIds);
-    $normalizedOptionIds = array_map('strval', $optionIds);
-    $encodedOptionIds = json_encode($normalizedOptionIds);
-
-    $cartItems = $this->getCartItemsFromCookies();
-    $itemKey = $productId . '_' . $encodedOptionIds;
-
-    if (isset($cartItems[$itemKey])) {
-        $cartItems[$itemKey]['quantity'] += $quantity;
-
-        // Update attachment if new one is provided
-        if ($attachmentPath !== null) {
-            $cartItems[$itemKey]['attachment_path'] = $attachmentPath;
-            $cartItems[$itemKey]['attachment_name'] = $attachmentFileName;
+        int $productId,
+        int $quantity,
+        $price,
+        $optionIds,
+        ?string $attachmentPath = null,
+        ?string $attachmentFileName = null
+    ): void {
+        // Normalize option IDs
+        if (is_string($optionIds)) {
+            $decoded = json_decode($optionIds, true);
+            $optionIds = is_array($decoded) ? $decoded : [];
+        } elseif (!is_array($optionIds)) {
+            $optionIds = [];
         }
-    } else {
-        $cartItems[$itemKey] = [
-            'product_id' => $productId,
-            'quantity' => $quantity,
-            'price' => $price,
-            'option_ids' => $normalizedOptionIds,
-            'attachment_path' => $attachmentPath,
-            'attachment_name' => $attachmentFileName, // 👈 Added
-        ];
+
+        ksort($optionIds);
+        $normalizedOptionIds = array_map('strval', $optionIds);
+        $encodedOptionIds = json_encode($normalizedOptionIds);
+
+        $cartItems = $this->getCartItemsFromCookies();
+        $itemKey = $productId . '_' . $encodedOptionIds;
+
+        if (isset($cartItems[$itemKey])) {
+            $cartItems[$itemKey]['quantity'] += $quantity;
+
+            // Update attachment if new one is provided
+            if ($attachmentPath !== null) {
+                $cartItems[$itemKey]['attachment_path'] = $attachmentPath;
+                $cartItems[$itemKey]['attachment_name'] = $attachmentFileName;
+            }
+        } else {
+            $cartItems[$itemKey] = [
+                'product_id' => $productId,
+                'quantity' => $quantity,
+                'price' => $price,
+                'option_ids' => $normalizedOptionIds,
+                'attachment_path' => $attachmentPath,
+                'attachment_name' => $attachmentFileName, // 👈 Added
+            ];
+        }
+
+        Cookie::queue(self::COOKIE_NAME, json_encode($cartItems), self::COOKIE_LIFETIME);
     }
 
-    Cookie::queue(self::COOKIE_NAME, json_encode($cartItems), self::COOKIE_LIFETIME);
-}
 
 
 
 
-
-protected function removeItemFromDatabase(int $productId, array $optionIds): void
+ protected function removeItemFromDatabase(int $productId, array $optionIds): void
 {
     $userId = Auth::id();
 
-    // Sort the input optionIds for consistent comparison
-    ksort($optionIds);
-
-    Log::info('removeItemFromDatabase called', [
-        'user_id' => $userId,
-        'product_id' => $productId,
-        'optionIds' => $optionIds,
-    ]);
+    $optionIds = array_map('strval', $optionIds);
+    sort($optionIds);
 
     $cartItems = CartItem::where('user_id', $userId)
         ->where('product_id', $productId)
         ->get();
 
-   foreach ($cartItems as $cartItem) {
-    $dbOptionIds = json_decode($cartItem->variation_type_option_ids, true);
-    if (is_array($dbOptionIds)) {
-        ksort($dbOptionIds);
-        ksort($optionIds);
-        if ($dbOptionIds === $optionIds) {
-            Log::info('Deleting cart item', ['cart_item_id' => $cartItem->id]);
-            $cartItem->delete();
-        } else {
-            Log::info('Option IDs do not match', [
-                'cart_item_id' => $cartItem->id,
-                'dbOptionIds_sorted' => $dbOptionIds,
-                'optionIds_sorted' => $optionIds,
-            ]);
+    foreach ($cartItems as $cartItem) {
+        $dbOptionIdsRaw = $cartItem->variation_type_option_ids;
+        $dbOptionIds = is_string($dbOptionIdsRaw) ? json_decode($dbOptionIdsRaw, true) : [];
+
+        if (is_array($dbOptionIds)) {
+            $dbOptionIds = array_map('strval', $dbOptionIds);
+            sort($dbOptionIds);
+
+            if ($dbOptionIds === $optionIds) {
+                Log::info('Deleting cart item', ['cart_item_id' => $cartItem->id]);
+                $cartItem->delete();
+            } else {
+                Log::info('Option IDs do not match', [
+                    'cart_item_id' => $cartItem->id,
+                    'expected' => $optionIds,
+                    'actual' => $dbOptionIds,
+                ]);
+            }
         }
-    } else {
-        Log::warning('variation_type_option_ids is not array after json_decode', ['cart_item_id' => $cartItem->id]);
     }
 }
-}
+
 
 
     protected function removeItemFromCookies(int $productId, array $optionIds): void
@@ -428,31 +439,36 @@ protected function removeItemFromDatabase(int $productId, array $optionIds): voi
     }
 
 
+
     protected function getCartItemsFromDatabase(): array
     {
-
         $userId = Auth::id();
+
         $cartItems = CartItem::where('user_id', $userId)
             ->paginate(50)
             ->map(function ($cartItem) {
+                $normalizedOptionIds = $this->normalizeOptionIds($cartItem->variation_type_option_ids);
+
+                Log::debug('Normalized option_ids for cart item', [
+                    'cart_item_id' => $cartItem->id,
+                    'raw_option_ids' => $cartItem->variation_type_option_ids,
+                    'normalized_option_ids' => $normalizedOptionIds,
+                ]);
+
                 return [
                     'id' => $cartItem->id,
                     'product_id' => $cartItem->product_id,
                     'quantity' => $cartItem->quantity,
-                    'option_ids' => $cartItem->variation_type_option_ids,
+                    'option_ids' => $normalizedOptionIds,
                     'price' => $cartItem->price,
                     'attachment_path' => $cartItem->attachment_path,
-                      'attachment_name' => $cartItem->attachment_name,
-
+                    'attachment_name' => $cartItem->attachment_name,
                 ];
             })->toArray();
 
-        if (Auth::check()) {
-            return $cartItems;
-        } else {
-            return [];
-        }
+        return Auth::check() ? $cartItems : [];
     }
+
 
 
     public function getCartItemsFromCookies(): array
@@ -482,7 +498,7 @@ protected function removeItemFromDatabase(int $productId, array $optionIds): voi
                 'price' => $item['price'] ?? 0,
                 'option_ids' => $item['option_ids'] ?? [],
                 'attachment_path' => $item['attachment_path'] ?? null,
-'attachment_name'=>$item['attachment_name'] ?? null
+                'attachment_name' => $item['attachment_name'] ?? null
             ];
         }
 
@@ -494,54 +510,50 @@ protected function removeItemFromDatabase(int $productId, array $optionIds): voi
 
 
     public function moveCartItemsToDatabase($userId): void
-{
-    $cartItems = $this->getCartItemsFromCookies();
+    {
+        $cartItems = $this->getCartItemsFromCookies();
 
-    foreach ($cartItems as $cartItem) {
-        // Normalize option_ids order
-        $optionIds = $cartItem['option_ids'] ?? [];
-        sort($optionIds);
-        $optionIdsJson = json_encode(array_values($optionIds));
+        foreach ($cartItems as $cartItem) {
+            // Normalize option_ids order
+            $optionIds = $cartItem['option_ids'] ?? [];
+            sort($optionIds);
+            $optionIdsJson = json_encode(array_values($optionIds));
 
-        $existingItem = CartItem::where('user_id', $userId)
-            ->where('product_id', $cartItem['product_id'])
-            ->where('variation_type_option_ids', $optionIdsJson)
-            ->first();
+            $existingItem = CartItem::where('user_id', $userId)
+                ->where('product_id', $cartItem['product_id'])
+                ->where('variation_type_option_ids', $optionIdsJson)
+                ->first();
 
-        if ($existingItem) {
-            $updateData = [
-                'quantity' => $existingItem->quantity + $cartItem['quantity'],
-            ];
+            if ($existingItem) {
+                $updateData = [
+                    'quantity' => $existingItem->quantity + $cartItem['quantity'],
+                ];
 
-            // Update attachments only if provided in cookie data
-            if (isset($cartItem['attachment_path'])) {
-                $updateData['attachment_path'] = $cartItem['attachment_path'];
+                // Update attachments only if provided in cookie data
+                if (isset($cartItem['attachment_path'])) {
+                    $updateData['attachment_path'] = $cartItem['attachment_path'];
+                }
+                if (isset($cartItem['attachment_name'])) {
+                    $updateData['attachment_name'] = $cartItem['attachment_name'];
+                }
+
+                $existingItem->update($updateData);
+            } else {
+                CartItem::create([
+                    'user_id' => $userId,
+                    'product_id' => $cartItem['product_id'],
+                    'quantity' => $cartItem['quantity'],
+                    'price' => $cartItem['price'],
+                    'variation_type_option_ids' => $optionIdsJson,
+                    'attachment_path' => $cartItem['attachment_path'] ?? null,
+                    'attachment_name' => $cartItem['attachment_name'] ?? null,
+                ]);
             }
-            if (isset($cartItem['attachment_name'])) {
-                $updateData['attachment_name'] = $cartItem['attachment_name'];
-            }
-
-            $existingItem->update($updateData);
-        } else {
-            CartItem::create([
-                'user_id' => $userId,
-                'product_id' => $cartItem['product_id'],
-                'quantity' => $cartItem['quantity'],
-                'price' => $cartItem['price'],
-                'variation_type_option_ids' => $optionIdsJson,
-                'attachment_path' => $cartItem['attachment_path'] ?? null,
-                'attachment_name' => $cartItem['attachment_name'] ?? null,
-            ]);
         }
+
+        // Remove the cookie after moving cart items
+        Cookie::queue(Cookie::forget(self::COOKIE_NAME));
     }
-
-    // Remove the cookie after moving cart items
-    Cookie::queue(Cookie::forget(self::COOKIE_NAME));
-}
-
-
-
-
 
 
     public function getCartItemsGrouped(): array
@@ -555,5 +567,36 @@ protected function removeItemFromDatabase(int $productId, array $optionIds): voi
                 'totalQuantity' => $items->sum('quantity'),
                 'totalPrice' => $items->sum(fn($item) => $item['price'] * $item['quantity']),
             ])->toArray();
+    }
+
+
+    protected function normalizeOptionIds($optionIds): array
+    {
+        if (is_string($optionIds)) {
+            $decoded = json_decode($optionIds, true);
+            $optionIds = is_array($decoded) ? $decoded : [];
+        }
+
+        if (!is_array($optionIds)) {
+            $optionIds = [];
+        }
+
+        // Convert indexed array ["1", "3"] → associative {"1": "1", "2": "3"}
+        if (array_is_list($optionIds)) {
+            $optionIds = collect($optionIds)
+                ->values()
+                ->mapWithKeys(function ($value, $index) {
+                    return [strval($index + 1) => strval($value)];
+                })->toArray();
+        } else {
+            // Ensure all keys and values are strings
+            $optionIds = collect($optionIds)->mapWithKeys(function ($value, $key) {
+                return [strval($key) => strval($value)];
+            })->toArray();
+        }
+
+        ksort($optionIds); // Consistent key order
+
+        return $optionIds;
     }
 }

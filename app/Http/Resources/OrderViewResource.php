@@ -19,11 +19,13 @@ class OrderViewResource extends JsonResource
             'status' => $this->status,
             'created_at' => $this->created_at,
             'total_price' => $this->total_price,
+            'booking_date' => optional(optional($this->order)->booking)->booking_date,
+            'time_slot' => optional(optional($this->order)->booking)->time_slot,
             'vendor' => [
                 'name' => $this->vendorUser->name ?? '',
                 'store_name' => $this->vendorUser->vendor->store_name ?? '',
                 'store_address' => $this->vendorUser->vendor->store_address ?? '',
-                'vendor_type'=> $this->vendorUser->vendor->vendor_type->value ?? '',
+                'vendor_type' => $this->vendorUser->vendor->vendor_type->value ?? '',
             ],
             'orderItems' => $this->orderItems->map(function ($item) {
                 $variationOptionIds = is_string($item->variation_type_option_ids)

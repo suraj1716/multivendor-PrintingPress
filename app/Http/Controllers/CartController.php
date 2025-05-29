@@ -37,9 +37,7 @@ class CartController extends Controller
             $shippingAddresses = [];
         }
 
-
         $hasEcommerceVendor = false;
-
         if ($user) {
             $hasEcommerceVendor = CartItem::where('user_id', $user->id)
                 ->whereHas('product.user.vendor', function ($query) {
@@ -47,8 +45,6 @@ class CartController extends Controller
                 })
                 ->exists();
         }
-
-
 
         $hasAppointmentVendor = false;
         if ($user) {
@@ -58,9 +54,6 @@ class CartController extends Controller
                 })
                 ->exists();
         }
-
-
-
 
         return Inertia::render('Cart/Index', [
             'cartItems' => $cartService->getCartItemsGrouped(),

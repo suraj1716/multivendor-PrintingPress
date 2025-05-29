@@ -34,7 +34,9 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListBookings extends ListRecords
 {
-    protected static string $resource = BookingResource::class;
+      protected static string $resource = BookingResource::class;
+    protected static ?string $title = 'Bookings List';
+
      protected function getTableQuery(): Builder
     {
         $user = Auth::user();
