@@ -10,9 +10,17 @@ export default function Navbar() {
     usePage<PageProps<{ keyword: string }>>().props;
   const { user } = auth;
 
-  const SearchForm = useForm<{ keyword: string }>({
-    keyword: keyword || "",
-  });
+ const SearchForm = useForm<{
+  keyword: string;
+  category_id: string;
+  max_price: string;
+  sort_by: string;
+}>({
+  keyword: keyword || "",
+  category_id: "",
+  max_price: "",
+  sort_by: "",
+});
 
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(
@@ -52,14 +60,15 @@ export default function Navbar() {
     e.preventDefault();
     setSuggestions([]); // Clear suggestions on submit
 
-    SearchForm.get("/shop", {
-      data: {
-        category_id: "",
-        keyword: SearchForm.data.keyword,
-        max_price: "",
-        sort_by: "",
-      },
-    });
+ SearchForm.setData({
+  category_id: "",
+  keyword: SearchForm.data.keyword,
+  max_price: "",
+  sort_by: "",
+});
+
+SearchForm.get("/shop");
+
   };
 
   return (
