@@ -28,7 +28,7 @@ export default function BookingHistory() {
   };
 
   const handleCancelBooking = (item: OrderItem, orderStatus: string) => {
-    if (orderStatus !== "draft") {
+    if (orderStatus !== "draft" ) {
       console.warn("Booking can only be cancelled when order is draft.");
       return;
     }
@@ -38,19 +38,21 @@ export default function BookingHistory() {
       return;
     }
 
-    if (confirm("Are you sure you want to cancel this booking?")) {
-      router.post(
-        route("bookings.cancel", item.booking.id),
-        {},
-        {
-          onSuccess: () => {
-            console.log("Booking cancelled");
-          },
-          onError: (errors) => {
-            console.error("Failed to cancel booking", errors);
-          },
-        }
-      );
+    if (orderStatus == "draft" || orderStatus == "paid") {
+      if (confirm("Are you sure you want to cancel this booking?")) {
+        router.post(
+          route("bookings.cancel", item.booking.id),
+          {},
+          {
+            onSuccess: () => {
+              console.log("Booking cancelled");
+            },
+            onError: (errors) => {
+              console.error("Failed to cancel booking", errors);
+            },
+          }
+        );
+      }
     }
   };
 
@@ -179,15 +181,14 @@ export default function BookingHistory() {
                                 >
                                   Edit
                                 </button>
-                                 <BookingWidget
-                                                  bookingDate={bookingDate}
-                                                  setBookingDate={setBookingDate}
-                                                  timeSlot={timeSlot}
-                                                  setTimeSlot={setTimeSlot}
-                                                  open={dialogOpen}
-                                                  onOpenChange={setDialogOpen}
-                                                />
-
+                                <BookingWidget
+                                  bookingDate={bookingDate}
+                                  setBookingDate={setBookingDate}
+                                  timeSlot={timeSlot}
+                                  setTimeSlot={setTimeSlot}
+                                  open={dialogOpen}
+                                  onOpenChange={setDialogOpen}
+                                />
                               </div>
                             )}
                           </td>
@@ -240,16 +241,16 @@ export default function BookingHistory() {
             >
               <h3 className="text-lg font-semibold mb-4">Edit Booking</h3>
 
-                   {bookingDate && timeSlot && (
-                  <div className="text-sm text-gray-700 dark:text-gray-300">
-                    <p>
-                      <strong>Selected Date:</strong> {bookingDate}
-                    </p>
-                    <p>
-                      <strong>Selected Time:</strong> {timeSlot}
-                    </p>
-                  </div>
-                )}
+              {bookingDate && timeSlot && (
+                <div className="text-sm text-gray-700 dark:text-gray-300">
+                  <p>
+                    <strong>Selected Date:</strong> {bookingDate}
+                  </p>
+                  <p>
+                    <strong>Selected Time:</strong> {timeSlot}
+                  </p>
+                </div>
+              )}
               <form onSubmit={handleSaveBooking}>
                 <div className="mb-4">
                   {errors.booking_date && (

@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Stripe\Stripe;
+use Stripe\Refund;
+
 
 class BookingController extends Controller
 {
@@ -23,208 +26,208 @@ class BookingController extends Controller
         ]);
     }
 
-     public function history()
+    public function history()
     {
-         $orders = Auth::user()
-        ->orders()
-        ->with([
-            'orderItems.product.variationTypes.options',
-             'orderItems.booking' // will return null for orders without bookings
-        ])
-        ->latest()
-        ->get();
+        $orders = Auth::user()
+            ->orders()
+            ->with([
+                'orderItems.product.variationTypes.options',
+                'orderItems.booking' // will return null for orders without bookings
+            ])
+            ->latest()
+            ->get();
 
-    return Inertia::render('Booking/BookingHistory', [
-        'orders' => OrderViewResource::collection($orders),
-    ]);
+        return Inertia::render('Booking/BookingHistory', [
+            'orders' => OrderViewResource::collection($orders),
+        ]);
     }
 
     public function store(Request $request)
     {
- $hasBooking = $request->input('hasBooking') == '1';
+        $hasBooking = $request->input('hasBooking') == '1';
         $user = Auth::user();
         if (!$user) {
             // Handle the unauthenticated case
             abort(403, 'Unauthorized');
         }
- if ($hasBooking) {
+        if ($hasBooking) {
 
-      $validated = $request->validate([
-            'booking_date' => 'required|date',
-            'time_slot' => 'required|string|max:255',
-        ]);
+            $validated = $request->validate([
+                'booking_date' => 'required|date',
+                'time_slot' => 'required|string|max:255',
+            ]);
 
-        $booking = Booking::create([
-            'user_id' => $user->id, // Ensure this is not null
-             'booking_date' => $validated['booking_date'],
-            'time_slot' => $validated['time_slot'],
+            $booking = Booking::create([
+                'user_id' => $user->id, // Ensure this is not null
+                'booking_date' => $validated['booking_date'],
+                'time_slot' => $validated['time_slot'],
 
-        ]);
-    }
+            ]);
+        }
 
         return redirect()->back()->with('success', 'Booking created successfully');
     }
 
-public function getAvailableSlots(Request $request)
-{
-    $date = $request->input('date');
+    public function getAvailableSlots(Request $request)
+    {
+        $date = $request->input('date');
 
-    if (!$date) {
-        Log::warning('Date parameter is missing.');
-        return response()->json([
-            'availableSlots' => [],
-            'message' => 'Date parameter is missing.'
-        ], 400);
-    }
+        if (!$date) {
+            Log::warning('Date parameter is missing.');
+            return response()->json([
+                'availableSlots' => [],
+                'message' => 'Date parameter is missing.'
+            ], 400);
+        }
 
-    // Set timezone to Sydney (fallback if not set in config)
-    $timezone = config('app.timezone', 'Australia/Sydney');
-    $now = now()->timezone($timezone);
-    $formattedDate = \Carbon\Carbon::parse($date, $timezone)->format('Y-m-d');
+        // Set timezone to Sydney (fallback if not set in config)
+        $timezone = config('app.timezone', 'Australia/Sydney');
+        $now = now()->timezone($timezone);
+        $formattedDate = \Carbon\Carbon::parse($date, $timezone)->format('Y-m-d');
 
-    Log::info("Requested date: {$formattedDate}, Current time: {$now->toDateTimeString()}");
+        Log::info("Requested date: {$formattedDate}, Current time: {$now->toDateTimeString()}");
 
-    // Business hours: 9 AM to 10 PM on the requested date
-    $businessStart = \Carbon\Carbon::parse($formattedDate . ' 09:00', $timezone);
-    $businessEnd = \Carbon\Carbon::parse($formattedDate . ' 22:00', $timezone);
-    $slotIntervalMinutes = 30;
+        // Business hours: 9 AM to 10 PM on the requested date
+        $businessStart = \Carbon\Carbon::parse($formattedDate . ' 09:00', $timezone);
+        $businessEnd = \Carbon\Carbon::parse($formattedDate . ' 22:00', $timezone);
+        $slotIntervalMinutes = 30;
 
-    // Closed dates and recurring closed days (Sunday = 0)
-    $closedDates = ['2025-05-30', '2025-06-10']; // example closed dates
-    $recurringClosedDays = [0]; // Sundays
+        // Closed dates and recurring closed days (Sunday = 0)
+        $closedDates = ['2025-05-30', '2025-06-10']; // example closed dates
+        $recurringClosedDays = [0]; // Sundays
 
-    $dayOfWeek = \Carbon\Carbon::parse($formattedDate, $timezone)->dayOfWeek;
+        $dayOfWeek = \Carbon\Carbon::parse($formattedDate, $timezone)->dayOfWeek;
 
-    if (in_array($formattedDate, $closedDates)) {
-        Log::info("Date {$formattedDate} is a closed date.");
-    }
-    if (in_array($dayOfWeek, $recurringClosedDays)) {
-        Log::info("Date {$formattedDate} is a recurring closed day (dayOfWeek={$dayOfWeek}).");
-    }
+        if (in_array($formattedDate, $closedDates)) {
+            Log::info("Date {$formattedDate} is a closed date.");
+        }
+        if (in_array($dayOfWeek, $recurringClosedDays)) {
+            Log::info("Date {$formattedDate} is a recurring closed day (dayOfWeek={$dayOfWeek}).");
+        }
 
-    // Check if the date is closed
-    if (in_array($formattedDate, $closedDates) || in_array($dayOfWeek, $recurringClosedDays)) {
+        // Check if the date is closed
+        if (in_array($formattedDate, $closedDates) || in_array($dayOfWeek, $recurringClosedDays)) {
+            return $request->wantsJson()
+                ? response()->json([
+                    'availableSlots' => [],
+                    'closedDates' => $closedDates,
+                    'message' => 'Selected date is not available for booking due to closure.'
+                ])
+                : Inertia::render('AvailableSlots', [
+                    'date' => $formattedDate,
+                    'availableSlots' => [],
+                    'closedDates' => $closedDates,
+                    'cutoffTime' => null,
+                    'message' => 'Selected date is not available for booking due to closure.'
+                ]);
+        }
+
+        $allSlots = [];
+        $isToday = $formattedDate === $now->format('Y-m-d');
+        $cutoffTime = $now->copy()->addHours(2);
+
+        Log::info("Is today: " . ($isToday ? 'true' : 'false'));
+        Log::info("Cutoff time (now + 2 hours): {$cutoffTime->toTimeString()}");
+
+        $current = $businessStart->copy();
+
+        while ($current->lt($businessEnd)) {
+            $end = $current->copy()->addMinutes($slotIntervalMinutes);
+            $slotLabel = $current->format('g:i a') . ' - ' . $end->format('g:i a');
+
+            if ($isToday) {
+                if ($current->greaterThanOrEqualTo($cutoffTime) && $current->greaterThanOrEqualTo($now)) {
+                    $allSlots[] = $slotLabel;
+                    Log::info("Including slot (today): {$slotLabel}");
+                } else {
+                    Log::info("Skipping slot (today, before cutoff or now): {$slotLabel}");
+                }
+            } else {
+                $allSlots[] = $slotLabel;
+                Log::info("Including slot (future date): {$slotLabel}");
+            }
+
+            $current->addMinutes($slotIntervalMinutes);
+        }
+
+        // Fetch booked slots for the date from DB
+        $bookedSlots = DB::table('bookings')
+            ->whereDate('booking_date', $formattedDate)
+            ->pluck('time_slot')
+            ->map(fn($slot) => strtolower(trim($slot)))
+            ->toArray();
+
+        Log::info("Booked slots for {$formattedDate}: " . json_encode($bookedSlots));
+
+        // Filter out booked slots
+        $availableSlots = array_values(array_filter(
+            $allSlots,
+            fn($slot) => !in_array(strtolower($slot), $bookedSlots)
+        ));
+
+        Log::info("Available slots for {$formattedDate}: " . json_encode($availableSlots));
+
         return $request->wantsJson()
             ? response()->json([
-                'availableSlots' => [],
-                'closedDates' => $closedDates,
-                'message' => 'Selected date is not available for booking due to closure.'
+                'availableSlots' => $availableSlots,
+                'message' => null,
+                'cutoffTime' => $isToday ? $cutoffTime->toTimeString() : null
             ])
             : Inertia::render('AvailableSlots', [
                 'date' => $formattedDate,
-                'availableSlots' => [],
+                'availableSlots' => $availableSlots,
                 'closedDates' => $closedDates,
-                'cutoffTime' => null,
-                'message' => 'Selected date is not available for booking due to closure.'
+                'cutoffTime' => $isToday ? $cutoffTime->toTimeString() : null,
+                'message' => null,
             ]);
     }
 
-    $allSlots = [];
-    $isToday = $formattedDate === $now->format('Y-m-d');
-    $cutoffTime = $now->copy()->addHours(2);
 
-    Log::info("Is today: " . ($isToday ? 'true' : 'false'));
-    Log::info("Cutoff time (now + 2 hours): {$cutoffTime->toTimeString()}");
 
-    $current = $businessStart->copy();
 
-    while ($current->lt($businessEnd)) {
-        $end = $current->copy()->addMinutes($slotIntervalMinutes);
-        $slotLabel = $current->format('g:i a') . ' - ' . $end->format('g:i a');
 
-        if ($isToday) {
-            if ($current->greaterThanOrEqualTo($cutoffTime) && $current->greaterThanOrEqualTo($now)) {
-                $allSlots[] = $slotLabel;
-                Log::info("Including slot (today): {$slotLabel}");
-            } else {
-                Log::info("Skipping slot (today, before cutoff or now): {$slotLabel}");
-            }
-        } else {
-            $allSlots[] = $slotLabel;
-            Log::info("Including slot (future date): {$slotLabel}");
+
+
+    public function update(Request $request, Booking $booking)
+    {
+        $request->validate([
+            'booking_date' => 'required|date',
+            'time_slot' => 'required|string|max:255',
+        ]);
+
+        // Optionally check authorization here
+        if ($booking->user_id !== Auth::id() && $booking->vendor_id !== Auth::id()) {
+            abort(403);
         }
 
-        $current->addMinutes($slotIntervalMinutes);
-    }
-
-    // Fetch booked slots for the date from DB
-    $bookedSlots = DB::table('bookings')
-        ->whereDate('booking_date', $formattedDate)
-        ->pluck('time_slot')
-        ->map(fn($slot) => strtolower(trim($slot)))
-        ->toArray();
-
-    Log::info("Booked slots for {$formattedDate}: " . json_encode($bookedSlots));
-
-    // Filter out booked slots
-    $availableSlots = array_values(array_filter(
-        $allSlots,
-        fn($slot) => !in_array(strtolower($slot), $bookedSlots)
-    ));
-
-    Log::info("Available slots for {$formattedDate}: " . json_encode($availableSlots));
-
-    return $request->wantsJson()
-        ? response()->json([
-            'availableSlots' => $availableSlots,
-            'message' => null,
-            'cutoffTime' => $isToday ? $cutoffTime->toTimeString() : null
-        ])
-        : Inertia::render('AvailableSlots', [
-            'date' => $formattedDate,
-            'availableSlots' => $availableSlots,
-            'closedDates' => $closedDates,
-            'cutoffTime' => $isToday ? $cutoffTime->toTimeString() : null,
-            'message' => null,
+        $booking->update([
+            'booking_date' => $request->booking_date,
+            'time_slot' => $request->time_slot,
         ]);
-}
 
-
-
-
-
-
-
- public function update(Request $request, Booking $booking)
-{
-    $request->validate([
-        'booking_date' => 'required|date',
-        'time_slot' => 'required|string|max:255',
-    ]);
-
-    // Optionally check authorization here
-    if ($booking->user_id !== Auth::id() && $booking->vendor_id !== Auth::id()) {
-        abort(403);
+        return redirect()->back()
+            ->with('success', 'Booking updated successfully.');
     }
-
-    $booking->update([
-        'booking_date' => $request->booking_date,
-        'time_slot' => $request->time_slot,
-    ]);
-
-    return redirect()->back()
-        ->with('success', 'Booking updated successfully.');
-}
 
 
 
 
     public function destroy($id)
-{
-    $booking = Booking::findOrFail($id);
-$order= Order::findOrFail($id);
-    if ($booking->user_id !== Auth::id()) {
-        abort(403);
+    {
+        $booking = Booking::findOrFail($id);
+        $order = Order::findOrFail($id);
+        if ($booking->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        if ($order->status !== 'draft') {
+            return redirect()->back()->with('error', 'Only draft bookings can be cancelled.');
+        }
+
+        $booking->delete();
+
+        return redirect()->back()->with('success', 'Booking deleted successfully.');
     }
-
-    if ($order->status !== 'draft') {
-        return redirect()->back()->with('error', 'Only draft bookings can be cancelled.');
-    }
-
-    $booking->delete();
-
-    return redirect()->back()->with('success', 'Booking deleted successfully.');
-}
 
 
     public function confirm(Booking $booking)
@@ -238,19 +241,63 @@ $order= Order::findOrFail($id);
         return redirect()->back()->with('success', 'Booking confirmed.');
     }
 
-    public function cancel(Booking $booking)
-    {
-        if ($booking->user_id !== Auth::id() && $booking->vendor_id !== Auth::id()) {
-            abort(403);
+
+
+
+
+
+
+public function cancel(Booking $booking)
+{
+    if ($booking->user_id !== Auth::id() && $booking->vendor_id !== Auth::id()) {
+        abort(403);
+    }
+
+    $order = $booking->order;
+
+    if (!$order || $order->status === 'cancelled') {
+        return redirect()->back()->with('error', 'Invalid order for cancellation.');
+    }
+
+    $order->status = 'cancelled';
+    $order->save();
+
+    if ($order->payment_intent && !$order->refunded_at) {
+        try {
+            Stripe::setApiKey(config('app.stripe_secret_key'));
+
+            // Calculate refund amount
+            $now = Carbon::now();
+            $bookingDate = Carbon::parse($booking->booking_date); // make sure booking_date is a proper datetime
+
+            $daysDiff = $now->diffInDays($bookingDate, false); // false = signed difference
+
+            if ($daysDiff < 2) {
+                $refundAmount = $order->total_price * 0.5; // 50%
+            } else {
+                $refundAmount = $order->total_price; // 100%
+            }
+
+            // Create refund
+            $refund = Refund::create([
+                'payment_intent' => $order->payment_intent,
+                'amount' => intval($refundAmount * 100), // Stripe uses cents
+            ]);
+
+            $order->refunded_at = now();
+            $order->refund_id = $refund->id;
+            $order->refund_amount = $refundAmount;
+            $order->refund_reason = $daysDiff < 2 ? 'Late cancellation (50%)' : 'Full refund';
+
+            $order->save();
+
+        } catch (\Exception $e) {
+            Log::error('Stripe refund failed: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Booking cancelled but refund failed.');
         }
-
- $order = $booking->order;
-
-
-    if ($order) {
-        $order->update(['status' => 'cancelled']);
     }
 
-        return redirect()->back()->with('success', 'Booking cancelled.');
-    }
+    return redirect()->back()->with('success', 'Booking cancelled and conditional refund processed.');
+}
+
 }

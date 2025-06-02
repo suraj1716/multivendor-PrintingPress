@@ -21,6 +21,11 @@ class OrderViewResource extends JsonResource
             'total_price' => $this->total_price,
             'booking_date' => optional(optional($this->order)->booking)->booking_date,
             'time_slot' => optional(optional($this->order)->booking)->time_slot,
+            'refunded_at' => $this->refunded_at,
+'refund_amount' => $this->refund_amount,
+
+'refund_reason ' => $this->refund_reason ,
+
             'vendor' => [
                 'name' => $this->vendorUser->name ?? '',
                 'store_name' => $this->vendorUser->vendor->store_name ?? '',
