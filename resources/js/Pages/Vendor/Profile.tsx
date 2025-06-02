@@ -226,17 +226,19 @@ export default function ListProducts({ vendor, products, departments, filters }:
                </div>
              </aside>
 
-        {/* Product List */}
-        <main className="w-full lg:w-3/4">
-          {products.data.length === 0 ? (
-            <div className="text-center py-20 text-gray-500">No products found.</div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {products.data.map((product) => (
-                <ProductItem key={product.id} product={product} />
-              ))}
-            </div>
-          )}
+      {/* Product List */}
+             <main className="w-full lg:w-full mr-10">
+               {products.data.length === 0 ? (
+                 <div className="text-center py-20 text-gray-500">
+                   No products found.
+                 </div>
+               ) : (
+                 <div className="grid grid-cols-1  sm:grid-cols-1 lg:grid-cols-3 gap-3">
+                   {products.data.map((product) => (
+                     <ProductItem key={product.id} product={product} />
+                   ))}
+                 </div>
+               )}
 
           {/* Pagination */}
           <div className="mt-6 flex justify-center space-x-2">

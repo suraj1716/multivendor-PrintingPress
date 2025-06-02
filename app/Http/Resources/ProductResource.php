@@ -24,7 +24,27 @@ class ProductResource extends JsonResource
             'image' => $this->getFirstMediaUrl('images'),
             'slug' => $this->slug,
             'quantity' => $this->quantity,
-            'vendor' => new VendorResource($this->whenLoaded('vendor')),
+            // Add this line to the returned array
+            'rating_breakdown' => $this->when(isset($this->resource->rating_breakdown), function () {
+                return $this->resource->rating_breakdown;
+            }),
+
+            'reviews' => $this->reviews->map(function ($review) {
+                return [
+                    'id' => $review->id,
+                    'userName' => $review->user->name ?? 'Anonymous',
+                    'rating' => $review->rating,
+                    'comment' => $review->comment,
+                    'comment_title' => $review->comment_title,
+                    'userId' => $review->user->id ?? null,
+                    'createdAt' => $review->created_at->toDateTimeString(),
+                    'userCreatedAt' => optional($review->user)->created_at?->toDateTimeString(),
+                ];
+            }),
+            'reviews_count' => $this->reviews_count,
+            'category' => new CategoryResource($this->whenLoaded('category')),
+            'average_rating' => round($this->reviews_avg_rating, 1),
+            'vendor' => new VendorUserResource($this->whenLoaded('vendor')),
             'images' => $this->getMedia('images')->map(function ($image) {
                 return [
                     'id' => $image->id,
@@ -36,12 +56,12 @@ class ProductResource extends JsonResource
             'user' => [
                 'id' => $this->user->id,
                 'name' => $this->user->name,
-                'store_name'=>$this->user->vendor->store_name
+                'store_name' => $this->user->vendor->store_name
             ],
             'department' => [
                 'id' => $this->department->id,
                 'name' => $this->department->name,
-                'slug'=>$this->department->slug
+                'slug' => $this->department->slug
             ],
             'variationTypes' => $this->variationTypes->map(function ($varitionType) {
                 return [

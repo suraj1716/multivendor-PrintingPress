@@ -10,6 +10,8 @@ type BookingWidgetProps = {
   setBookingDate: (date: string) => void;
   timeSlot: string;
   setTimeSlot: (slot: string) => void;
+    open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
 const recurringClosedDays = [0]; // Sunday = 0
@@ -19,11 +21,13 @@ export default function BookingWidget({
   setBookingDate,
   timeSlot,
   setTimeSlot,
+ open,
+  onOpenChange,
 }: BookingWidgetProps) {
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
+  // const [open, setOpen] = useState(false);
 
   // State to hold closed dates from backend
   const [closedDates, setClosedDates] = useState<string[]>([]);
@@ -80,10 +84,12 @@ export default function BookingWidget({
 
   return (
     <div className="space-y-2">
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <button className="btn-primary">Book Appointment</button>
-        </DialogTrigger>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        {/* <DialogTrigger asChild>
+          {children || (
+    <button className="btn-primary">Book Appointment</button>
+  )}
+        </DialogTrigger> */}
 
         <DialogContent className="max-w-md w-full">
           <h2 className="text-lg font-bold mb-4">Select Booking Details</h2>
@@ -125,14 +131,14 @@ export default function BookingWidget({
             </div>
 
             <div className="flex justify-end space-x-2">
-              <button className="btn-secondary" onClick={() => setOpen(false)}>
+              <button className="btn-secondary" onClick={() => onOpenChange(false)}>
                 Cancel
               </button>
               <button
                 className="btn-primary"
                 onClick={() => {
                   // Submit your booking here
-                  setOpen(false);
+                  onOpenChange(false);
                 }}
                 disabled={!bookingDate || !timeSlot}
               >

@@ -6,6 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Review extends Model
 {
+
+    protected $fillable = [
+    'user_id',
+    'product_id',
+    'rating',
+    'comment',
+    'comment_title', // ← add this
+];
+
     public function product()
 {
     return $this->belongsTo(Product::class);

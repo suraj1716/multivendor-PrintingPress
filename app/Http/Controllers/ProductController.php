@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\Product;
 use App\services\ProductSearchService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class ProductController extends Controller
@@ -37,18 +38,57 @@ class ProductController extends Controller
 
 
 
-    public function show(Product $product)
-    {
-        $product = Product::with(['variationTypes.options', 'variations']) // ✅ Load everything needed
-            ->find($product->id);
 
 
-        // Return an Inertia response with the formatted data
-        return Inertia::render('Product/Show', [
-            'product' => new ProductResource($product), // Send product data in a structured format
-            'variationOptions' => request('option', []), // Send any selected options from the request (defaults to an empty array)
-        ]);
-    }
+
+  public function show(Product $product)
+{
+    // Load relations and reviews with user info
+    $product = Product::with([
+        'variationTypes.options',
+        'variations',
+        'category',
+        'user',
+        'user:id,name,created_at',
+        'reviews.user:id,name'  // load reviews with the user who wrote them
+    ])->withCount('reviews')
+      ->withAvg('reviews', 'rating')
+      ->find($product->id);
+
+
+
+// Calculate rating breakdown
+    $rawBreakdown = $product->reviews()
+        ->selectRaw('rating, COUNT(*) as count')
+        ->groupBy('rating')
+        ->pluck('count', 'rating');
+
+    // Ensure all 1-5 stars are included, defaulting to 0 if missing
+    $ratingBreakdown = collect([5, 4, 3, 2, 1])->mapWithKeys(function ($star) use ($rawBreakdown) {
+        return [$star => $rawBreakdown[$star] ?? 0];
+    });
+
+
+    // Prepare reviews for frontend
+    $reviews = $product->reviews->map(function ($review) {
+        return [
+            'id' => $review->id,
+            'userName' => $review->user->name ?? 'Anonymous',
+            'rating' => $review->rating,
+            'comment' => $review->comment,
+            'createdAt' => $review->created_at->toDateTimeString(),
+            'userCreatedAt' => optional($review->user)->created_at?->toDateTimeString(), // 👈 Add this
+        ];
+    });
+
+    return Inertia::render('Product/Show', [
+        'product' => new ProductResource($product),
+        'variationOptions' => request('option', []),
+        'reviews' => $reviews,  // send reviews explicitly
+         'ratingBreakdown' => $ratingBreakdown, // pass it to the frontend
+    ]);
+}
+
 
 
 
@@ -109,9 +149,6 @@ class ProductController extends Controller
             ->get();
 
 
-
-
-
         // // Get all departments that have products (to filter out empty ones)
         $departments = Department::whereHas('categories.products', function ($query) {
             $query->filterApproved();  // only categories with approved products
@@ -164,7 +201,9 @@ class ProductController extends Controller
 
         $query = Product::query()
             ->forWebsite()
-            ->with(['user.vendor', 'department']); // eager load user and vendor
+            ->with(['user.vendor', 'department'])
+            ->withAvg('reviews', 'rating')->withCount('reviews');; // ✅ Add this line here
+
 
         if ($keyword) {
             $query->where('title', 'LIKE', "%{$keyword}%");

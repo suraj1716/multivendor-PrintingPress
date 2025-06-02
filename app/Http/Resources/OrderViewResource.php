@@ -52,6 +52,13 @@ class OrderViewResource extends JsonResource
                 }
 
                 return [
+
+                    'booking' => $this->booking ? [
+    'id' => $this->booking->id,
+    'booking_date' => $this->booking->booking_date,
+    'time_slot' => $this->booking->time_slot,
+] : null,
+
                     'id' => $item->id,
                     'quantity' => $item->quantity,
                     'price' => $item->price,

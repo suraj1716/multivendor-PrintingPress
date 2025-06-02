@@ -23,7 +23,7 @@ function Index({
   cartItems: Record<number, GroupedCartItems>;
   shippingAddresses: any[];
   bookings: Booking[];
-   showBookingWidget: boolean;
+  showBookingWidget: boolean;
   showShippingForm: boolean;
 }>) {
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
@@ -33,6 +33,7 @@ function Index({
   const [bookingDate, setBookingDate] = useState("");
   const [timeSlot, setTimeSlot] = useState("");
   const [loading, setLoading] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +42,6 @@ function Index({
       alert("Please select a shipping address.");
       return;
     }
-
 
     if ((!bookingDate || !timeSlot) && showBookingWidget) {
       alert("Please select a booking date and time slot.");
@@ -56,8 +56,8 @@ function Index({
         method: "POST" as Method,
         data: {
           booking_date: bookingDate,
-           hasBooking: showBookingWidget ? '1' : '0',
-           hasShipping: showShippingForm ? '1' : '0',
+          hasBooking: showBookingWidget ? "1" : "0",
+          hasShipping: showShippingForm ? "1" : "0",
           time_slot: timeSlot,
         },
         preserveState: true,
@@ -124,48 +124,50 @@ function Index({
         {/* ---------- SIDEBAR: ADDRESS + CHECKOUT + BOOKINGS ---------- */}
         <div className="card flex-1 bg-white dark:bg-gray-800 lg:min-w-[260px] order-1 lg:order-2">
           <div className="card-body space-y-6">
-
-
-
             {/* --- Booking Widget --- */}
-             {showBookingWidget && (
-            <div className="space-y-4 border p-4 rounded">
-
-              <h3 className="font-bold text-lg">Book a Time Slot</h3>
-
-              <button className="inline-block mb-2 px-3 py-1.5 text-sm font-semibold text-white bg-blue-600 rounded hover:bg-blue-700">
+            {showBookingWidget && (
+              <div className="space-y-4 border p-4 rounded">
+                <h3 className="font-bold text-lg">Book Appointment</h3>
+                {/* Pass a button as the dialog trigger */}
+                <button
+                  className="inline-block mb-2 px-3 py-1.5 text-sm font-semibold text-white bg-blue-600 rounded hover:bg-blue-700"
+                  onClick={() => setDialogOpen(true)}
+                >
+                  Book Appointment
+                </button>
                 <BookingWidget
                   bookingDate={bookingDate}
                   setBookingDate={setBookingDate}
                   timeSlot={timeSlot}
                   setTimeSlot={setTimeSlot}
+                  open={dialogOpen}
+                  onOpenChange={setDialogOpen}
                 />
-              </button>
 
-              {bookingDate && timeSlot && (
-                <div className="text-sm text-gray-700 dark:text-gray-300">
-                  <p>
-                    <strong>Selected Date:</strong> {bookingDate}
-                  </p>
-                  <p>
-                    <strong>Selected Time:</strong> {timeSlot}
-                  </p>
-                </div>
-              )}
-            </div>
-  )}
+                {bookingDate && timeSlot && (
+                  <div className="text-sm text-gray-700 dark:text-gray-300">
+                    <p>
+                      <strong>Selected Date:</strong> {bookingDate}
+                    </p>
+                    <p>
+                      <strong>Selected Time:</strong> {timeSlot}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* --- Shipping form --- */}
             <form onSubmit={handleCheckout} className="space-y-4">
               <input type="hidden" name="_token" value={csrf_token} />
 
-            {showShippingForm && (
-  <ShippingAddressSelector
-    shippingAddresses={shippingAddresses}
-    selectedAddressId={selectedAddressId}
-    setSelectedAddressId={setSelectedAddressId}
-  />
-)}
+              {showShippingForm && (
+                <ShippingAddressSelector
+                  shippingAddresses={shippingAddresses}
+                  selectedAddressId={selectedAddressId}
+                  setSelectedAddressId={setSelectedAddressId}
+                />
+              )}
 
               <div>
                 <p>
@@ -173,7 +175,6 @@ function Index({
                   <CurrencyFormatter amount={totalPrice} currency="AUD" />
                 </p>
               </div>
-
 
               {/* Checkout Form */}
               <PrimaryButton
@@ -184,11 +185,6 @@ function Index({
                 {loading ? "Processing..." : "Proceed to checkout"}
               </PrimaryButton>
             </form>
-
-
-
-
-
           </div>
         </div>
       </div>

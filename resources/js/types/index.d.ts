@@ -1,8 +1,5 @@
 import { Config } from "ziggy-js";
 
-
-
-
 export interface User {
   id: number;
   name: string;
@@ -44,6 +41,8 @@ export type Product = {
   created_at: string;
   updated_at: string;
   deleted_at?: string;
+  quantity: number;
+
   category_id: number;
   category: {
     id: number;
@@ -51,26 +50,43 @@ export type Product = {
     created_at: string;
     products_count?: number;
   };
-  quantity: number;
+
   user: {
     id: number;
     name: string;
     store_name: string;
   };
+
   department: {
     id: number;
     name: string;
     slug: string;
   };
 
+  average_rating?: number;
+  reviews_count?: number;
+  rating_breakdown?: Record<1 | 2 | 3 | 4 | 5, number>;
+
+  reviews: {
+    id: number;
+    userName: string;
+    rating: number;
+    comment: string | null;
+    comment_title: string | null;
+    createdAt: string;
+    userId: number;
+     userCreatedAt: string;  // user registration date
+  }[];
+
   variationTypes: VariationType[];
-  variations: Array<{
+  variations: {
     id: number;
     variation_type_option_ids: number[];
     quantity: number;
     price: number;
-  }>;
+  }[];
 };
+
 
 export type Image = {
   id: number;
@@ -79,8 +95,8 @@ export type Image = {
   large: string;
 };
 
-
 export interface Booking {
+  id: number | string;
   booking_date: string;
   time_slot: string;
   notes: string;
@@ -95,10 +111,9 @@ export type CartItem = {
   image_url: string;
   option_ids: Record<string, number>;
   options: VariationTypeOption[];
-  attachment_path: string,
-   attachment_name: string,
-   booking: Booking[] | null; // Nullable booking field
-
+  attachment_path: string;
+  attachment_name: string;
+  booking: Booking[] | null; // Nullable booking field
 };
 
 export type GroupedCartItems = {
@@ -136,7 +151,6 @@ export type PaginationProps<T> = {
   };
 };
 
-
 export type PageProps<
   T extends Record<string, unknown> = Record<string, unknown>
 > = T & {
@@ -156,11 +170,15 @@ export type PageProps<
   miniCartItems: CartItem[];
   departments: Department[];
   dpts: Department[];
+  // location: any;
+  // getLocation: () => void;
+  // openDropdown: boolean;
+  // setOpenDropdown: (val: boolean) => void;
 };
 export type VariationSummary = {
   type: string;
   option: string;
-   image:string
+  image: string;
 };
 
 export type OrderItem = {
@@ -179,7 +197,7 @@ export type OrderItem = {
   };
   variation_type_option_ids: number[];
   variation_summary?: VariationSummary[]; // ✅ Add this line
-   attachment_path?: string;    // <-- add here
+  attachment_path?: string; // <-- add here
   attachment_name?: string;
   booking?: Booking;
 };
@@ -197,7 +215,7 @@ export type Order = {
     store_address: string;
     vendor_type: string;
   };
-
+ booking?: Booking
   orderItems: OrderItem[];
 };
 

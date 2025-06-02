@@ -23,22 +23,12 @@ use Inertia\Inertia;
 
 
 
-Route::get('/test-cart-cookie', function () {
-    $rawCookie = Cookie::get('cartItems');
-    $decoded = json_decode($rawCookie, true);
-    return response()->json([
-        'raw' => $rawCookie,
-        'decoded' => $decoded
-    ]);
-});
-
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile/shipping-addresses', [ShippingAddressController::class, 'index'])->name('shipping.index');
-   Route::post('/shipping-addresses', [ShippingAddressController::class, 'store'])->name('shipping-addresses.store');
-Route::patch('/shipping-addresses/{address}/default', [ShippingAddressController::class, 'setDefault'])->name('shipping-addresses.set-default');
-Route::put('/shipping-addresses/{shippingAddress}', [ShippingAddressController::class, 'update'])->name('shipping-addresses.update');
-Route::delete('/shipping-addresses/{id}', [ShippingAddressController::class, 'destroy'])->name('shipping-addresses.destroy');
-
+    Route::post('/shipping-addresses', [ShippingAddressController::class, 'store'])->name('shipping-addresses.store');
+    Route::patch('/shipping-addresses/{address}/default', [ShippingAddressController::class, 'setDefault'])->name('shipping-addresses.set-default');
+    Route::put('/shipping-addresses/{shippingAddress}', [ShippingAddressController::class, 'update'])->name('shipping-addresses.update');
+    Route::delete('/shipping-addresses/{id}', [ShippingAddressController::class, 'destroy'])->name('shipping-addresses.destroy');
 });
 Route::get('/', [ProductController::class, 'home'])->name('dashboard');
 Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('product.show');
@@ -59,12 +49,12 @@ Route::get('/search-suggestions', function (Request $request) {
 
 
 Route::get('/d/{department:slug}', [ProductController::class, 'byDepartment'])
-->name('product.byDepartment');
+    ->name('product.byDepartment');
 
 Route::get('/shop', [ProductController::class, 'search'])->name('shop.search');
 
-Route::get('/seller/{vendor:store_name}',[VendorController::class, 'profile'])
-->name('vendor.profile');
+Route::get('/seller/{vendor:store_name}', [VendorController::class, 'profile'])
+    ->name('vendor.profile');
 
 
 Route::get('/check-auth', function () {
@@ -97,7 +87,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/orders-history', [OrderController::class, 'index'])->name('orders.history');
-Route::get('/orders/{order}', [OrderController::class, 'show']);
+    Route::get('/orders/{order}', [OrderController::class, 'show']);
 
 
     Route::middleware(['verified'])->group(function () {
@@ -107,8 +97,8 @@ Route::get('/orders/{order}', [OrderController::class, 'show']);
         Route::post('/become-a-vendor', [VendorController::class, 'store'])->name('vendor.store');
 
         Route::post('/stripe/connect', [StripeController::class, 'connect'])
-        ->name('stripe.connect')
-        ->middleware(['role:' . RolesEnum::Vendor->value]);
+            ->name('stripe.connect')
+            ->middleware(['role:' . RolesEnum::Vendor->value]);
     });
 });
 
@@ -117,6 +107,7 @@ Route::get('/orders/{order}', [OrderController::class, 'show']);
 // RESTful resource routes for BookingController (index, store, update, destroy)
 Route::middleware('auth')->group(function () {
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
+    Route::get('/booking-history', [BookingController::class, 'history'])->name('bookings.history');
     Route::post('/bookings/store', [BookingController::class, 'store'])->name('bookings.store');
     Route::put('/bookings/{booking}', [BookingController::class, 'update'])->name('bookings.update');
     Route::delete('/bookings/{booking}', [BookingController::class, 'destroy'])->name('bookings.destroy');
@@ -125,7 +116,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/bookings/{booking}/confirm', [BookingController::class, 'confirm'])->name('bookings.confirm');
     Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
     Route::get('/booking/available-slots', [BookingController::class, 'getAvailableSlots'])
-    ->name('available-slots');
+        ->name('available-slots');
 });
 
 

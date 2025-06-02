@@ -389,32 +389,53 @@ class CartService
     $userId = Auth::id();
 
     $optionIds = array_map('strval', $optionIds);
-    sort($optionIds);
+    ksort($optionIds);
 
     $cartItems = CartItem::where('user_id', $userId)
         ->where('product_id', $productId)
         ->get();
 
     foreach ($cartItems as $cartItem) {
-        $dbOptionIdsRaw = $cartItem->variation_type_option_ids;
-        $dbOptionIds = is_string($dbOptionIdsRaw) ? json_decode($dbOptionIdsRaw, true) : [];
+    $dbOptionIdsRaw = $cartItem->variation_type_option_ids;
+    $dbOptionIds = [];
 
-        if (is_array($dbOptionIds)) {
-            $dbOptionIds = array_map('strval', $dbOptionIds);
-            sort($dbOptionIds);
-
-            if ($dbOptionIds === $optionIds) {
-                Log::info('Deleting cart item', ['cart_item_id' => $cartItem->id]);
-                $cartItem->delete();
-            } else {
-                Log::info('Option IDs do not match', [
-                    'cart_item_id' => $cartItem->id,
-                    'expected' => $optionIds,
-                    'actual' => $dbOptionIds,
-                ]);
-            }
+    if (is_string($dbOptionIdsRaw)) {
+        $decoded = json_decode($dbOptionIdsRaw, true);
+        if (is_array($decoded) && array_is_list($decoded)) {
+            // Skip array-style format like ["1","3"]
+            Log::warning('Skipping item with list-style variation_type_option_ids', [
+                'cart_item_id' => $cartItem->id,
+                'variation_type_option_ids' => $decoded,
+            ]);
+            continue;
         }
+        $dbOptionIds = $decoded;
+    } elseif (is_array($dbOptionIdsRaw)) {
+        $dbOptionIds = $dbOptionIdsRaw;
     }
+
+    if (is_array($dbOptionIds)) {
+        ksort($dbOptionIds);
+        ksort($optionIds);
+
+        if ($dbOptionIds === $optionIds) {
+            Log::info('Deleting cart item', ['cart_item_id' => $cartItem->id]);
+            $cartItem->delete();
+        } else {
+            Log::info('Option IDs do not match', [
+                'cart_item_id' => $cartItem->id,
+                'dbOptionIds_sorted' => $dbOptionIds,
+                'optionIds_sorted' => $optionIds,
+            ]);
+        }
+    } else {
+        Log::warning('variation_type_option_ids is not array after json_decode', [
+            'cart_item_id' => $cartItem->id,
+            'variation_type_option_ids' => $dbOptionIdsRaw,
+        ]);
+    }
+}
+
 }
 
 

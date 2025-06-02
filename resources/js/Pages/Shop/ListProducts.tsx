@@ -231,13 +231,13 @@ export default function ListProducts({
         </aside>
 
         {/* Product List */}
-        <main className="w-full lg:w-3/4">
+        <main className="w-full lg:w-full  mr-20">
           {products.data.length === 0 ? (
             <div className="text-center py-20 text-gray-500">
               No products found.
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 space-x-20 justify-center items-center sm:grid-cols-2 lg:grid-cols-3">
               {products.data.map((product) => (
                 <ProductItem key={product.id} product={product} />
               ))}

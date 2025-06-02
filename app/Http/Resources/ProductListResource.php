@@ -31,6 +31,8 @@ class ProductListResource extends JsonResource
             'name' => $this->department->name,
             'slug' => $this->department->slug,
         ],
+        'average_rating' => round($this->reviews_avg_rating, 1),
+       'reviews_count' => $this->reviews_count,
     ];
 }
 

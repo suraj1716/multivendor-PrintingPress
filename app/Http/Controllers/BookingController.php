@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\OrderViewResource;
 use App\Models\Booking;
+use App\Models\Order;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,12 +23,25 @@ class BookingController extends Controller
         ]);
     }
 
+     public function history()
+    {
+         $orders = Auth::user()
+        ->orders()
+        ->with([
+            'orderItems.product.variationTypes.options',
+             'orderItems.booking' // will return null for orders without bookings
+        ])
+        ->latest()
+        ->get();
+
+    return Inertia::render('Booking/BookingHistory', [
+        'orders' => OrderViewResource::collection($orders),
+    ]);
+    }
+
     public function store(Request $request)
     {
  $hasBooking = $request->input('hasBooking') == '1';
-
-
-
         $user = Auth::user();
         if (!$user) {
             // Handle the unauthenticated case
@@ -170,40 +185,47 @@ public function getAvailableSlots(Request $request)
 
 
 
-    public function update(Request $request, Booking $booking)
-    {
-        if ($booking->user_id !== Auth::id()) {
-            abort(403);
-        }
+ public function update(Request $request, Booking $booking)
+{
+    $request->validate([
+        'booking_date' => 'required|date',
+        'time_slot' => 'required|string|max:255',
+    ]);
 
-        $data = $request->validate([
-            'product_id' => 'required|exists:products,id',
-            'vendor_id' => 'required|exists:users,id',
-            'booking_date' => 'required|date',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
-            'status' => 'in:pending,confirmed,cancelled',
-        ]);
-
-        $booking->update($data);
-
-        return redirect()->back()->with('success', 'Booking updated successfully.');
+    // Optionally check authorization here
+    if ($booking->user_id !== Auth::id() && $booking->vendor_id !== Auth::id()) {
+        abort(403);
     }
+
+    $booking->update([
+        'booking_date' => $request->booking_date,
+        'time_slot' => $request->time_slot,
+    ]);
+
+    return redirect()->back()
+        ->with('success', 'Booking updated successfully.');
+}
+
 
 
 
     public function destroy($id)
-    {
-        $booking = Booking::findOrFail($id);
-
-        if ($booking->user_id !== Auth::id()) {
-            abort(403);
-        }
-
-        $booking->delete();
-
-        return redirect()->back()->with('success', 'Booking deleted successfully.');
+{
+    $booking = Booking::findOrFail($id);
+$order= Order::findOrFail($id);
+    if ($booking->user_id !== Auth::id()) {
+        abort(403);
     }
+
+    if ($order->status !== 'draft') {
+        return redirect()->back()->with('error', 'Only draft bookings can be cancelled.');
+    }
+
+    $booking->delete();
+
+    return redirect()->back()->with('success', 'Booking deleted successfully.');
+}
+
 
     public function confirm(Booking $booking)
     {
@@ -211,7 +233,7 @@ public function getAvailableSlots(Request $request)
             abort(403);
         }
 
-        $booking->update(['status' => 'confirmed']);
+        // $booking->update(['status' => 'confirmed']);
 
         return redirect()->back()->with('success', 'Booking confirmed.');
     }
@@ -222,7 +244,12 @@ public function getAvailableSlots(Request $request)
             abort(403);
         }
 
-        $booking->update(['status' => 'cancelled']);
+ $order = $booking->order;
+
+
+    if ($order) {
+        $order->update(['status' => 'cancelled']);
+    }
 
         return redirect()->back()->with('success', 'Booking cancelled.');
     }

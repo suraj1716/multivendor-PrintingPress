@@ -53,7 +53,7 @@ public function cartItems()
 
 public function booking()
 {
-    return $this->hasOne(Booking::class);
+    return $this->hasOne(Booking::class, 'order_id');
 }
 
 }
