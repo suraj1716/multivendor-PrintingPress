@@ -23,14 +23,14 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items }) => {
                 {item.href && !item.current ? (
                   <Link
                     href={item.href}
-                    className="rounded-md p-1 text-sm font-medium text-gray-600 focus:text-gray-900 focus:shadow hover:text-gray-800"
+                    className="rounded-md p-1 text-sm font-medium text-purple-600 focus:text-gray-900 focus:shadow hover:text-gray-800"
                   >
                     {item.label}
                   </Link>
                 ) : (
                   <span
                     aria-current={item.current ? "page" : undefined}
-                    className="rounded-md p-1 text-sm font-medium text-gray-900"
+                    className="rounded-md p-1 text-sm font-bold text-gray-900"
                   >
                     {item.label}
                   </span>

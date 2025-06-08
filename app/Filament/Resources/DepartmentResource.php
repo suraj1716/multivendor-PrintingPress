@@ -10,10 +10,12 @@ use App\Models\Department;
 use Filament\Facades\Filament;
 use Filament\Forms;
 use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -30,6 +32,11 @@ class DepartmentResource extends Resource
     {
         return $form
             ->schema([
+                FileUpload::make('image')
+                    ->image()
+                    ->imageEditor()
+                    ->directory('departments') // optional: defines the upload folder in storage
+                    ->required(false),
                 TextInput::make('name')
                     ->live(onBlur: true)
                     ->required()
@@ -46,6 +53,10 @@ class DepartmentResource extends Resource
     {
         return $table
             ->columns([
+                ImageColumn::make('image')
+                    ->circular()
+                    ->defaultImageUrl(asset('images/department-placeholder.png')),
+
                 TextColumn::make('name')
                     ->sortable()
                     ->searchable()

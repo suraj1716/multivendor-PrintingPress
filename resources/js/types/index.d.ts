@@ -1,19 +1,28 @@
 import { Config } from "ziggy-js";
 
+
+export interface Vendor {
+id: number;
+   status: string;
+  status_label: string;
+  store_name: string;
+  store_address: string;
+  vendor_type: string;
+  cover_image: string;
+  business_start_time: string;
+  business_end_time: string;
+  slot_interval_minutes: number;
+  recurring_closed_days: string[]; // example: ['sunday', 'monday']
+  closed_dates: string[]; // example: ['2025-06-01', '2025-06-05']
+}
+
 export interface User {
   id: number;
   name: string;
   email: string;
   email_verified_at?: string;
   stripe_account_active: boolean;
-  vendor: {
-    status: string;
-    status_label: string;
-    store_name: string;
-    store_address: string;
-    vendor_type: string;
-    cover_image: string;
-  };
+  vendor: Vendor
 }
 
 export type VariationTypeOption = {
@@ -27,6 +36,15 @@ export type VariationType = {
   name: string;
   type: "Select" | "Radio" | "Image";
   options: VariationTypeOption[];
+};
+
+
+export type CategoryGroup = {
+  id: number;
+  name: string;
+  image: string | null;
+  active: boolean;
+  categories: (Category & { department: Department })[];
 };
 
 export type Product = {
@@ -49,6 +67,7 @@ export type Product = {
     name: string;
     created_at: string;
     products_count?: number;
+    imgage?:string;
   };
 
   user: {
@@ -61,6 +80,7 @@ export type Product = {
     id: number;
     name: string;
     slug: string;
+    image:string;
   };
 
   average_rating?: number;
@@ -87,6 +107,17 @@ export type Product = {
   }[];
 };
 
+
+export type ProductGroup={
+  id: number;
+  name:string;
+  image: string;
+  slug: string;
+  active: boolean;
+  products: {
+    data: Product[];
+  };
+}
 
 export type Image = {
   id: number;
@@ -207,14 +238,7 @@ export type Order = {
   total_price: number;
   status: string;
   created_at: string;
-  vendor: {
-    id: string;
-    name: string;
-    email: string;
-    store_name: string;
-    store_address: string;
-    vendor_type: string;
-  };
+  vendor: Vendor;
  booking?: Booking
   orderItems: OrderItem[];
 };
@@ -230,11 +254,14 @@ export type Category = {
   id: number;
   name: string;
   products_count: number;
+    image?:string;
+
 };
 
 export type Department = {
   id: number;
   name: string;
+  image:string;
   slug: string;
   meta_title: string;
   meta_description: string;
@@ -250,6 +277,7 @@ export type dpts = {
   meta_description: string;
   categories: Category[];
   productsCount: number;
+  image: string;
 };
 
 export type ProductListItem = {
@@ -267,5 +295,6 @@ export type ProductListItem = {
     id: number;
     name: string;
     slug: string;
+    image:string
   };
 };

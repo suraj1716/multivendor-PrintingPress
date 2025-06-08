@@ -293,6 +293,30 @@ function Show({
                 ))}
               </div>
             )}
+
+{type.type === "Select" && (
+  <div className="mt-3">
+    <select
+      className="w-full rounded-lg border border-black px-4 py-2 font-semibold transition-all"
+      value={selectedOptions[type.id]?.id ?? ""}
+      onChange={(e) => {
+        const selectedId = Number(e.target.value); // ✅ convert to number
+        const selected = type.options.find(opt => opt.id === selectedId);
+        if (selected) chooseOption(type.id, selected);
+      }}
+    >
+      <option value="" disabled>Select an option</option>
+      {type.options.map((option) => (
+        <option key={option.id} value={option.id}>
+          {option.name}
+        </option>
+      ))}
+    </select>
+  </div>
+
+)}
+
+
           </div>
         ))}
       </>
@@ -380,6 +404,8 @@ function Show({
 
       <section className="py-12 sm:py-16">
         <div className="container mx-auto px-4">
+
+             <div className="ml-20">
           <Breadcrumbs
             items={[
               { label: "Home", href: "/" },
@@ -400,6 +426,7 @@ function Show({
               { label: product.title, current: true },
             ]}
           />
+          </div>
 
           <div className="lg:col-gap-12 xl:col-gap-16 mt-8 grid grid-cols-1 gap-12 lg:mt-12 lg:grid-cols-5 lg:gap-16">
             <div className="lg:col-span-3 lg:row-end-1">

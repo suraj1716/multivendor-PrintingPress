@@ -14,6 +14,15 @@ export default {
 
     theme: {
     	extend: {
+ screens: {
+        'xs': '350px',
+        'tab': '800px',
+        'md': '1024px', // optional override or add new
+        'lg':'1200px'
+      },
+
+
+
     		fontFamily: {
     			sans: [
     				'Figtree',
@@ -79,5 +88,9 @@ export default {
     	}
     },
 
-    plugins: [require('daisyui'), require("tailwindcss-animate")],
+    plugins: [
+      require('daisyui'), require("tailwindcss-animate"),
+      require('tailwind-scrollbar-hide'),
+
+    ],
 };

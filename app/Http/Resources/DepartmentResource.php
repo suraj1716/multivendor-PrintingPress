@@ -8,7 +8,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class DepartmentResource extends JsonResource
 {
 
-    public static $wrap=false;
+    public static $wrap = false;
     /**
      * Transform the resource into an array.
      *
@@ -17,18 +17,18 @@ class DepartmentResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'=>$this->id,
-            'name'=>$this->name,
-            'slug'=>$this->slug,
-            'meta_title'=>$this->meta_title,
-            'meta_description'=>$this->meta_description,
+            'id' => $this->id,
+            'name' => $this->name,
+            'slug' => $this->slug,
+            'meta_title' => $this->meta_title,
+            'meta_description' => $this->meta_description,
             'productsCount' => $this->products_count ?? 0,
-
-            'categories'=>$this->categories->map(function($category){
-               return[
-                'id'=>$category->id,
-                'name'=>$category->name
-               ];
+            'image' => $this->image,
+            'categories' => $this->categories->map(function ($category) {
+                return [
+                    'id' => $category->id,
+                    'name' => $category->name
+                ];
             }),
 
         ];

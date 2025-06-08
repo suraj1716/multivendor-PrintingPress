@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\DepartmentResource;
+use App\Http\Resources\ProductGroupResource;
 use App\Http\Resources\ProductResource;
 use App\Http\Resources\ProductListResource;
+use App\Models\CategoryGroup;
 use App\Models\Department;
 use App\Models\Product;
+use App\Models\ProductGroup;
 use App\services\ProductSearchService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,6 +23,35 @@ class ProductController extends Controller
     public function home(Request $request)
     {
         $keyword = $request->query('keyword');
+        $categoryGroups = CategoryGroup::with(['categories.department'])
+            ->where('active', true)
+            ->get()
+            ->map(function ($group) {
+                // Access the accessor to ensure it's loaded, but do not assign
+                $group->image_url;
+                return $group;
+            });
+
+
+
+       $productGroups = ProductGroup::where('active', 1)
+    ->with([
+        'groupedProducts.user.vendor',
+        'groupedProducts.department',
+        'groupedProducts.variationTypes.options.media',
+        'groupedProducts.variations',
+        'groupedProducts.media',
+        'groupedProducts.reviews',
+        'groupedProducts.reviews.user'
+    ])
+    ->get();
+
+ $productGroupsResource = ProductGroupResource::collection($productGroups);
+
+    // Pass the $request to toArray()
+    $productGroupsArray = $productGroupsResource->toArray($request);
+
+
 
         // Grab every department that actually has products
         $departments = Department::whereHas('categories.products', fn($q) => $q->filterApproved())
@@ -27,11 +60,14 @@ class ProductController extends Controller
 
         $products = ProductSearchService::queryWithKeyword($keyword)->paginate(12);
 
+
         return Inertia::render('Home', [
             'products'    => ProductListResource::collection($products),
             'keyword'     => $keyword,
             'departments' => $departments,
-            'department'  => null,          // No single department selected
+            'department'  => null,
+            'categoryGroups' => $categoryGroups,
+            'productGroups'   => $productGroupsArray
         ]);
     }
 
@@ -41,60 +77,67 @@ class ProductController extends Controller
 
 
 
-  public function show(Product $product)
-{
-    // Load relations and reviews with user info
-    $product = Product::with([
-        'variationTypes.options',
-        'variations',
-        'category',
-        'user',
-        'user:id,name,created_at',
-        'reviews.user:id,name'  // load reviews with the user who wrote them
-    ])->withCount('reviews')
-      ->withAvg('reviews', 'rating')
-      ->find($product->id);
+    public function show(Product $product)
+    {
+        // Load relations and reviews with user info
+        $product = Product::with([
+            'variationTypes.options',
+            'variations',
+            'category',
+            'user',
+            'user:id,name,created_at',
+            'reviews.user:id,name'  // load reviews with the user who wrote them
+        ])->withCount('reviews')
+            ->withAvg('reviews', 'rating')
+            ->find($product->id);
 
 
 
-// Calculate rating breakdown
-    $rawBreakdown = $product->reviews()
-        ->selectRaw('rating, COUNT(*) as count')
-        ->groupBy('rating')
-        ->pluck('count', 'rating');
+        // Calculate rating breakdown
+        $rawBreakdown = $product->reviews()
+            ->selectRaw('rating, COUNT(*) as count')
+            ->groupBy('rating')
+            ->pluck('count', 'rating');
 
-    // Ensure all 1-5 stars are included, defaulting to 0 if missing
-    $ratingBreakdown = collect([5, 4, 3, 2, 1])->mapWithKeys(function ($star) use ($rawBreakdown) {
-        return [$star => $rawBreakdown[$star] ?? 0];
-    });
+        // Ensure all 1-5 stars are included, defaulting to 0 if missing
+        $ratingBreakdown = collect([5, 4, 3, 2, 1])->mapWithKeys(function ($star) use ($rawBreakdown) {
+            return [$star => $rawBreakdown[$star] ?? 0];
+        });
 
 
-    // Prepare reviews for frontend
-    $reviews = $product->reviews->map(function ($review) {
-        return [
-            'id' => $review->id,
-            'userName' => $review->user->name ?? 'Anonymous',
-            'rating' => $review->rating,
-            'comment' => $review->comment,
-            'createdAt' => $review->created_at->toDateTimeString(),
-            'userCreatedAt' => optional($review->user)->created_at?->toDateTimeString(), // 👈 Add this
-        ];
-    });
+        // Prepare reviews for frontend
+        $reviews = $product->reviews->map(function ($review) {
+            return [
+                'id' => $review->id,
+                'userName' => $review->user->name ?? 'Anonymous',
+                'rating' => $review->rating,
+                'comment' => $review->comment,
+                'createdAt' => $review->created_at->toDateTimeString(),
+                'userCreatedAt' => optional($review->user)->created_at?->toDateTimeString(), // 👈 Add this
+            ];
+        });
 
-    return Inertia::render('Product/Show', [
-        'product' => new ProductResource($product),
-        'variationOptions' => request('option', []),
-        'reviews' => $reviews,  // send reviews explicitly
-         'ratingBreakdown' => $ratingBreakdown, // pass it to the frontend
-    ]);
-}
+        return Inertia::render('Product/Show', [
+            'product' => new ProductResource($product),
+            'variationOptions' => request('option', []),
+            'reviews' => $reviews,  // send reviews explicitly
+            'ratingBreakdown' => $ratingBreakdown, // pass it to the frontend
+        ]);
+    }
 
 
 
 
     public function byDepartment(Request $request, $slug)
     {
-        $department = Department::where('slug', $slug)->firstOrFail();
+
+
+        $department = Department::with(['categories' => function ($query) {
+            $query->whereHas('products', function ($q) {
+                $q->filterApproved();
+            });
+        }])->where('slug', $slug)->firstOrFail();
+
 
         $categoryId = $request->integer('category_id');
         $maxPrice = $request->float('max_price');
@@ -163,8 +206,10 @@ class ProductController extends Controller
             }])
             ->get();
 
+
+
         return Inertia::render('Department/Index', [
-            'department' => $department,
+            'department' => new DepartmentResource($department),
             'products' => ProductListResource::collection($products),
             'categories' => $categories,
             'departments' => $departments,

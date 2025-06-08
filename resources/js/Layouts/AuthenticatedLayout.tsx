@@ -1,4 +1,5 @@
 import ApplicationLogo from "@/Components/App/ApplicationLogo";
+import Footer from "@/Components/App/Footer";
 import Navbar from "@/Components/App/Navbar";
 import Dropdown from "@/Components/Core/Dropdown";
 import NavLink from "@/Components/Core/NavLink";
@@ -49,7 +50,7 @@ export default function AuthenticatedLayout({
   }, [props.success]);
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className=" min-h-screen bg-gray-100 z-200">
       <Navbar/>
       {props.error && (
         <div className="container px-8 mt-8 mx-auto">
@@ -68,6 +69,7 @@ export default function AuthenticatedLayout({
       )}
 
       <main>{children}</main>
+         <Footer/>
     </div>
   );
 }

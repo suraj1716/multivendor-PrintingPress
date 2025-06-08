@@ -46,7 +46,7 @@ const deleteForm=useForm({
 
   return (
     <>
-      <div key={item.id} className="flex gap-6 p-3">
+      <div key={item.id} className="flex gap-6 p-3 overflow-x-auto">
         <Link
           href={productRoute(item)}
           className="w-32 min-w-32 flex justify-center self-start"
@@ -81,7 +81,7 @@ const deleteForm=useForm({
             </div>
 
 
-          <div className="flex justify-between items-center mt-4">
+          <div className="flex-col justify-between items-center mt-4">
             <div className="text-sm">Quantity: </div>
             <div
               className={error ? 'tooltip tooltip-open tooltip-error' : ''}

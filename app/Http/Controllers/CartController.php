@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\OrderStatusEnum;
+use App\Enums\VendorType;
 use App\Models\Booking;
 use App\Models\CartItem;
 use App\Models\Order;
@@ -30,6 +31,22 @@ class CartController extends Controller
     {
         $user = Auth::user();
         $userId = $user ? $user->id : null;
+
+
+
+        $cartItems = CartItem::where('user_id', $user->id)
+            ->with('product.vendor')
+            ->get();
+
+        $appointmentVendorIds = $cartItems
+            ->pluck('product.vendor')            // Get vendor from each cart item's product
+            ->filter(fn($vendor) => $vendor !== null && $vendor->vendor_type->value === VendorType::APPOINTMENT->value)
+            ->pluck('user_id')                   // Get the user_id of vendor (which is vendor's primary key)
+            ->unique()                          // Unique vendor IDs
+            ->values();
+
+
+
         if ($user) {
             $shippingAddresses = ShippingAddress::where('user_id', $user->id)
                 ->get();
@@ -63,6 +80,7 @@ class CartController extends Controller
             'showShippingForm' => $hasEcommerceVendor,  // <-- new prop
             'showBookingWidget' => $hasAppointmentVendor,
             'csrf_token' => csrf_token(),
+            'vendorId' => $appointmentVendorIds,
         ]);
     }
 

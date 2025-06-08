@@ -272,4 +272,11 @@ public function reviews()
     return $this->hasMany(Review::class);
 }
 
+
+public function productGroups()
+{
+    return $this->belongsToMany(ProductGroup::class, 'product_group_product'); // Explicit pivot table name
+}
+
+
 }

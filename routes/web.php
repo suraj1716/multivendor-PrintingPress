@@ -3,6 +3,7 @@
 use App\Enums\RolesEnum;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\ShippingAddressController;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\VendorController;
 use App\Http\Resources\ProductListResource;
+use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
@@ -33,18 +35,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::get('/', [ProductController::class, 'home'])->name('dashboard');
 Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('product.show');
 
+Route::get('/category/{category}', [CategoryController::class, 'show'])->name('category.show');
 
 
 Route::get('/search-suggestions', function (Request $request) {
     $keyword = $request->query('keyword');
 
-    $titles = Product::query()
+   $products = Product::query()
         ->forWebsite()
+        ->with([
+            'category',
+            'department',
+            'user.vendor',
+            'variationTypes.options.media',
+            'variations',
+            'reviews'
+        ])
         ->where('title', 'LIKE', "%{$keyword}%")
         ->limit(10)
-        ->pluck('title'); // Only return the title field as an array
+        ->get();
 
-    return response()->json($titles);
+    return ProductResource::collection($products);
 });
 
 
