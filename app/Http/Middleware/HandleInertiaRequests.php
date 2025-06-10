@@ -70,6 +70,7 @@ class HandleInertiaRequests extends Middleware
                 'name' => $department->name,
                 'slug' => $department->slug,
                 'productsCount' => $department->products_count,
+                'image' => $department->image,
             ];
         }),
         'error' => session('error'),

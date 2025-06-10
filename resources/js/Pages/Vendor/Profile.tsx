@@ -5,8 +5,11 @@ import ProductItem from "@/Components/App/ProductItem";
 import { Vendor, PageProps, PaginationProps, Product, Department } from "@/types";
 import { PlusCircle, MinusCircle } from "lucide-react";
 
+type VendorWrapper = {
+  data: Vendor;
+}
 type ProfileProps = PageProps<{
-  vendor: Vendor;
+  vendor: VendorWrapper;
   products: PaginationProps<Product>;
   departments: Department[];
   filters: {
@@ -29,10 +32,10 @@ export default function ListProducts({ vendor, products, departments, filters }:
       prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]
     );
   };
-
+console.log('vendor',vendor);
   const handleFilterChange = () => {
     router.get(
-      route("vendor.profile", { vendor: vendor.store_name }),
+      route("vendor.profile", { vendor: vendor.data.store_name }),
       {
         department_id: selectedDepartment,
         category_id: selectedCategory,
@@ -55,7 +58,7 @@ export default function ListProducts({ vendor, products, departments, filters }:
 
   // Fetch all products with reset filters
   router.get(
-    route("vendor.profile", { vendor: vendor.store_name }),
+    route("vendor.profile", { vendor: vendor.data.store_name }),
     {
       department_id: null,
       category_id: null,
@@ -86,10 +89,10 @@ export default function ListProducts({ vendor, products, departments, filters }:
 
   return (
     <AuthenticatedLayout>
-      <Head title={`${vendor.store_name} Profile Page`} />
+      <Head title={`${vendor.data.store_name} Profile Page`} />
 
       <div className="bg-gray-200 py-10 text-center">
-        <h1 className="text-3xl font-semibold text-gray-800">Products By Vendor: {vendor.store_name}</h1>
+        <h1 className="text-3xl font-semibold text-gray-800">Products By Vendor: {vendor.data.store_name}</h1>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 p-6">

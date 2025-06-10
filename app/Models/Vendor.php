@@ -13,11 +13,17 @@ class Vendor extends Model
 {
    use HasFactory;
  protected $primaryKey = 'user_id';
-    protected $fillable = ['user_id', 'status', 'store_name', 'store_address', 'vendor_type'];
+   protected $fillable = [
+    'user_id', 'status', 'store_name', 'store_address', 'vendor_type',
+    'business_start_time', 'business_end_time', 'slot_interval_minutes', 'recurring_closed_days', 'closed_dates'
+];
 
-  protected $casts = [
-        'vendor_type' => VendorType::class,
-    ];
+protected $casts = [
+    'vendor_type' => VendorType::class,
+    'recurring_closed_days' => 'array',
+    'closed_dates' => 'array',
+];
+
 
 public function scopeEligibleForPayout(Builder $query):Builder
 {

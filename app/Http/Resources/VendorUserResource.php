@@ -19,6 +19,13 @@ class VendorUserResource extends JsonResource
             'email'=>$this->email,
             'store_name'=>$this->vendor->store_name,
             'store_address'=>$this->vendor->store_address,
+            'business_start_time'=>$this->vendor->business_start_time,
+            'business_end_time'=>$this->vendor->business_end_time,
+            'slot_interval_minutes'=>$this->vendor->slot_interval_minutes,
+            'recurring_closed_days' => $this->vendor->recurring_closed_days ?? [],
+        'closed_dates' => $this->vendor->closed_dates ?? [],
+
+
             // 'order_Items'=>$this->orderItems->map(fn($item)=>[
             //     'id'=>$item->id,
             //     'quantity'=>$item->quantity,

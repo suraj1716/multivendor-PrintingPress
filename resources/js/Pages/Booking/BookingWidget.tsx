@@ -1,52 +1,46 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Dialog, DialogContent, DialogTrigger } from "@/Components/ui/dialog";
-import { DayPicker } from "react-day-picker";
+import { DayPicker, Matcher } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import dayjs from "dayjs";
+import { DialogDescription, DialogTitle } from "@radix-ui/react-dialog";
+import AvailableSlots from "../AvailableSlots";
 
 type BookingWidgetProps = {
   bookingDate: string;
   setBookingDate: (date: string) => void;
   timeSlot: string;
   setTimeSlot: (slot: string) => void;
-    open: boolean;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
+  vendorId?: number | null; // add here
+  onSubmit: (date: string, slot: string) => void; // ✅ new prop
 };
-
-const recurringClosedDays = [0]; // Sunday = 0
 
 export default function BookingWidget({
   bookingDate,
   setBookingDate,
   timeSlot,
   setTimeSlot,
- open,
+  open,
   onOpenChange,
+  vendorId, // add vendorId here
+  onSubmit,
 }: BookingWidgetProps) {
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // const [open, setOpen] = useState(false);
 
   // State to hold closed dates from backend
   const [closedDates, setClosedDates] = useState<string[]>([]);
-
+  const [recurringClosedDays, setRecurringClosedDays] = useState<number[]>([]);
   // Convert closedDates (strings) to Date objects for DayPicker
-  const closedDatesAsDateObjects = closedDates.map((d) => new Date(d));
-
-  // Disabled days array includes:
-  // 1) Past dates (before today)
-  // 2) Recurring closed days (e.g. Sundays)
-  // 3) Closed dates fetched from backend
-  const disabledDays = [
-    { before: new Date() },
-    ...recurringClosedDays.map((day) => ({ dayOfWeek: day })),
-    ...closedDatesAsDateObjects,
-  ];
 
   useEffect(() => {
-    if (!bookingDate) {
+    if (!bookingDate ) {
       setAvailableTimeSlots([]);
       setTimeSlot("");
       return;
@@ -58,19 +52,30 @@ export default function BookingWidget({
       setTimeSlot("");
 
       try {
-        const response = await axios.get(`/booking/available-slots?date=${bookingDate}`);
+        const response = await axios.get(`/booking/available-slots`, {
+          params: { date: bookingDate, vendorId },
+        });
 
-        const { availableSlots, message, closedDates } = response.data;
+        const { availableSlots, message, closedDates, recurringClosedDays } =
+          response.data;
 
-        setAvailableTimeSlots(availableSlots);
+        setAvailableTimeSlots(
+          Array.isArray(availableSlots) ? availableSlots : []
+        );
 
-        // Update closedDates state with backend data
         if (closedDates && Array.isArray(closedDates)) {
           setClosedDates(closedDates);
         }
+        if (recurringClosedDays && Array.isArray(recurringClosedDays)) {
+          setRecurringClosedDays(recurringClosedDays.map(Number)); // converts ["0", "6"] => [0, 6]
+        }
 
-        if (message) setError(message);
-        else setError(null);
+        // Set error ONLY if message indicates an actual error
+        if (message && message.toLowerCase().includes("error")) {
+          setError(message);
+        } else {
+          setError(null);
+        }
       } catch (err) {
         setError("Failed to load time slots.");
         setAvailableTimeSlots([]);
@@ -80,7 +85,22 @@ export default function BookingWidget({
     }
 
     fetchTimeSlots();
-  }, [bookingDate, setTimeSlot]);
+  }, [bookingDate, vendorId]);
+
+  const closedDatesAsDateObjects = closedDates.map((d) => new Date(d));
+
+  const disabledDays: Matcher[] = [
+    { before: new Date() },
+    ...(recurringClosedDays.length > 0
+      ? [{ dayOfWeek: recurringClosedDays }]
+      : []), // Correct structure
+    ...closedDatesAsDateObjects,
+  ];
+
+  console.log(
+    "BookingWidget closedDatesAsDateObjects",
+    closedDatesAsDateObjects
+  );
 
   return (
     <div className="space-y-2">
@@ -91,10 +111,12 @@ export default function BookingWidget({
   )}
         </DialogTrigger> */}
 
-        <DialogContent className="max-w-md w-full">
-          <h2 className="text-lg font-bold mb-4">Select Booking Details</h2>
+        <DialogContent className="w-full max-w-sm sm:max-w-md md:max-w-lg p-6 max-h-[100vh] overflow-y-auto">
+          <DialogTitle className="text-lg font-bold mb-4">
+            Select Booking Details
+          </DialogTitle>
 
-          <div className="space-y-4">
+          <div className="w-full max-w-sm sm:max-w-md md:max-w-lg p-6 max-h-[90vh] overflow-y-auto bg-white rounded-lg shadow-lg">
             <div>
               <label className="block font-medium mb-2">Select Date:</label>
               <DayPicker
@@ -108,30 +130,39 @@ export default function BookingWidget({
             </div>
 
             <div>
-              <label className="block font-medium mb-2">Select Time Slot:</label>
+              <label className="block font-medium mb-2">
+                Select Time Slot:
+              </label>
+
               {loadingSlots ? (
                 <p>Loading available slots...</p>
               ) : error ? (
                 <p className="text-red-600">{error}</p>
+              ) : availableTimeSlots.length > 0 ? (
+             <AvailableSlots
+  date={bookingDate}
+  availableSlots={availableTimeSlots}
+  selectedSlot={timeSlot}
+
+  onSelect={(slot) => {
+  console.log("Slot selected:", slot);
+  setTimeSlot(slot); // ✅ Just set, don't submit here
+    onOpenChange(false);
+}}
+
+
+/>
+
               ) : (
-                <select
-                  value={timeSlot}
-                  onChange={(e) => setTimeSlot(e.target.value)}
-                  className="w-full border border-gray-300 rounded p-2"
-                  disabled={availableTimeSlots.length === 0}
-                >
-                  <option value="">Select a time slot</option>
-                  {availableTimeSlots.map((slot) => (
-                    <option key={slot} value={slot}>
-                      {slot}
-                    </option>
-                  ))}
-                </select>
+                <p>No available slots.</p>
               )}
             </div>
 
             <div className="flex justify-end space-x-2">
-              <button className="btn-secondary" onClick={() => onOpenChange(false)}>
+              <button
+                className="btn-secondary"
+                onClick={() => onOpenChange(false)}
+              >
                 Cancel
               </button>
               <button

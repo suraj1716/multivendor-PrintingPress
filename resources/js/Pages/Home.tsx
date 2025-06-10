@@ -2,144 +2,275 @@ import Hero_Banner from "@/Components/App/Hero_Banner";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { PageProps, PaginationProps, Product } from "@/types";
 import { useEffect } from "react";
-import AOS from 'aos';
-import 'aos/dist/aos.css';
+import AOS from "aos";
+import "aos/dist/aos.css";
 import ProductItem from "@/Components/App/ProductItem";
-import { Swiper, SwiperSlide } from 'swiper/react'
-import { Autoplay, Navigation  } from 'swiper/modules'
-import 'swiper/css'
-import 'swiper/css/autoplay'
-import 'swiper/css/navigation';
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Navigation } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/autoplay";
+import "swiper/css/navigation";
 import HeroBanner from "@/Components/App/Hero_Banner";
+import LandingPage from "./LandingPage";
+import Footer from "@/Components/App/Footer";
 // other imports...
+
+import { CategoryGroup, Category, Department, ProductGroup } from "@/types"; // Add these types
 
 export default function Home({
   products,
-}: PageProps<{ products: PaginationProps<Product> }>) {
-
-    console.log(products.data);
-
-useEffect(() => {
-  AOS.init({
-    duration: 800,
-    once: true,
-  });
-
-  // Remove opacity-0 after AOS is ready to prevent flicker
-  setTimeout(() => {
-    document.querySelectorAll('.aos-init').forEach((el) => {
-      el.classList.remove('opacity-0');
+  categoryGroups,
+  productGroups,
+}: PageProps<{
+  products: PaginationProps<Product>;
+  categoryGroups: CategoryGroup[];
+  productGroups: ProductGroup[]; // camelCase too
+}>) {
+  //  console.log(products.data);
+  console.log(categoryGroups); // Just to verify data
+  useEffect(() => {
+    AOS.init({
+      duration: 800,
+      once: true,
     });
-  }, 100); // small delay ensures AOS is initialized
-}, []);
 
+    // Remove opacity-0 after AOS is ready to prevent flicker
+    setTimeout(() => {
+      document.querySelectorAll(".aos-init").forEach((el) => {
+        el.classList.remove("opacity-0");
+      });
+    }, 100); // small delay ensures AOS is initialized
+  }, []);
 
   return (
     <div className="overflow-x-hidden">
       <AuthenticatedLayout>
         {/* Use Hero_Banner */}
-       <HeroBanner />
 
+        <HeroBanner />
 
+        {/* {Array.isArray(productGroups) &&
+          productGroups.map((group) => {
+            const products = Array.isArray(group.products?.data)
+              ? group.products.data
+              : [];
 
-<main className="w-full mb-10 mt-20">
-  {/* Header */}
-  <div className="flex items-center justify-between px-20 mb-4">
-    <h2 className="text-xl font-semibold text-gray-800">Products</h2>
-    <a
-      href="/products"
-      className="text-sm text-indigo-600 hover:underline font-medium"
-    >
-      See all products →
-    </a>
-  </div>
-
-  {products.data.length === 0 ? (
-    <div className="text-center py-20 text-gray-500">No products found.</div>
-  ) : (
-    <div className="relative px-4">
-      <Swiper
-        modules={[Autoplay, Navigation]}
-        autoplay={{
-          delay: 2000,
-          disableOnInteraction: false,
-        }}
-        navigation
-        loop
-        spaceBetween={320}
-        breakpoints={{
-          320: { slidesPerView: 1.2 },
-          480: { slidesPerView: 1.5 },
-          640: { slidesPerView: 2 },
-          768: { slidesPerView: 3 },
-          1024: { slidesPerView: 4 },
-          1280: { slidesPerView: 5 },
-        }}
-        className="product-carousel"
-      >
-        {products.data.map((product) => (
-          <SwiperSlide key={product.id}>
-            <div className="h-full">
-              <ProductItem product={product} />
-            </div>
-          </SwiperSlide>
-        ))}
-      </Swiper>
-    </div>
-  )}
-</main>
+            return (
+              <div key={group.id} className="mb-10">
+                <h2>{group.name}</h2>
+                {group.image && <img src={group.image} alt={group.name} />}
+                <div>
+                  {products.map((product) => (
+                    <ProductItem key={product.id} product={product} />
+                  ))}
+                </div>
+              </div>
+            );
+          })} */}
 
 
 
 
+<div className="px-6 mt-12 space-y-10">
+  {productGroups.map((group) => {
+    const products = Array.isArray(group.products?.data)
+      ? group.products.data
+      : [];
+
+    return (
+      <div key={group.id} className="bg-white rounded-lg shadow p-4">
+        <h2 className="text-xl font-bold mb-2">{group.name}</h2>
+        {/* {group.image && (
+          <img
+            src={`/storage/${group.image}`}
+            alt={group.name}
+            className="h-32 object-cover mb-4 rounded"
+          />
+        )} */}
+
+        {/* {products.length === 0 ? (
+          <div className="text-center py-20 text-gray-500">
+            No products found.
+          </div>
+        ) : ( */}
+          <div className="relative px-4">
+            <Swiper
+              modules={[Autoplay, Navigation]}
+              autoplay={{
+                delay: 2000,
+                disableOnInteraction: false,
+              }}
+              navigation
+              loop
+              spaceBetween={30}
+              breakpoints={{
+                320: { slidesPerView: 1.5 },
+                480: { slidesPerView: 3 },
+                640: { slidesPerView: 3 },
+                768: { slidesPerView: 3 },
+                1024: { slidesPerView: 3 },
+                1280: { slidesPerView: 5 },
+              }}
+              className="product-carousel"
+            >
+              {products.map((product) => (
+                <SwiperSlide key={product.id}>
+                  <div className="h-full mb-5">
+                    <ProductItem product={product} />
+                  </div>
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        {/* )} */}
+
+      </div>
+    );
+  })}
+</div>
 
 
-<section className="text-gray-600 body-font">
-  <div className="container px-5 py-24 mx-auto">
-    <div className="flex flex-wrap -mx-4 -my-8">
-      {[1, 2, 3].map((item, i) => (
-        <div
-          key={i}
-          className="py-8 px-4 lg:w-1/3 opacity-0 animate-fadeUp delay-[100ms]"
-          style={{ animationDelay: `${i * 200}ms` }}
-        >
-          <div className="h-full flex items-start hover:scale-[1.02] transition-transform duration-300 ease-in-out">
-            <div className="w-12 flex-shrink-0 flex flex-col text-center leading-none">
-              <span className="text-gray-500 pb-2 mb-2 border-b-2 border-gray-200">Jul</span>
-              <span className="font-medium text-lg text-gray-800 title-font leading-none">18</span>
-            </div>
-            <div className="flex-grow pl-6">
-              <h2 className="tracking-widest text-xs title-font font-medium text-indigo-500 mb-1">CATEGORY</h2>
-              <h1 className="title-font text-xl font-medium text-gray-900 mb-3">
-                {["The 400 Blows", "Shooting Stars", "Neptune"][i]}
-              </h1>
-              <p className="leading-relaxed mb-5">
-                Photo booth fam kinfolk cold-pressed sriracha leggings jianbing microdosing tousled waistcoat.
-              </p>
-              <a className="inline-flex items-center cursor-pointer hover:opacity-80 transition-opacity">
+
+        <div className="px-6 mt-12 space-y-10">
+          {categoryGroups.map((group) => (
+            <div key={group.id} className="bg-white rounded-lg shadow p-4">
+              <h2 className="text-xl font-bold mb-2">{group.name}</h2>
+              {/* {group.image && (
                 <img
-                  alt="blog"
-                  src={`https://dummyimage.com/10${3 - i}x10${3 - i}`}
-                  className="w-8 h-8 rounded-full flex-shrink-0 object-cover object-center"
+                  src={`/storage/${group.image}`}
+                  alt={group.name}
+                  className="h-32 object-cover mb-4 rounded"
                 />
-                <span className="flex-grow flex flex-col pl-3">
-                  <span className="title-font font-medium text-gray-900">
-                    {["Alper Kamu", "Holden Caulfield", "Henry Letham"][i]}
-                  </span>
-                </span>
-              </a>
+              )} */}
+
+              <div className="flex flex-wrap gap-4">
+                {group.categories.map((category) => (
+                  <a
+                    key={category.id}
+                    href={route("category.show", category.id)}
+                    className="block p-2 border rounded hover:bg-gray-100 w-48 text-center"
+                  >
+                {category.image && (
+        <img
+          src={`/storage/${category.image}`}
+          alt={category.name}
+          className="w-full h-32 object-contain rounded mb-2"
+        />
+      )}
+                    <div className="font-semibold">{category.name}</div>
+                    <div className="text-sm text-gray-500">
+                      {category.department?.name}
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <main className="w-full mb-10 mt-20">
+          {/* Header */}
+          <div className="flex items-center justify-between px-20 mb-4">
+            <h2 className="text-xl font-semibold text-gray-800">Products</h2>
+            <a
+              href="/products"
+              className="text-sm text-indigo-600 hover:underline font-medium"
+            >
+              See all products →
+            </a>
+          </div>
+
+          {products.data.length === 0 ? (
+            <div className="text-center py-20 text-gray-500">
+              No products found.
+            </div>
+          ) : (
+            <div className="relative px-4">
+              <Swiper
+                modules={[Autoplay, Navigation]}
+                autoplay={{
+                  delay: 2000,
+                  disableOnInteraction: false,
+                }}
+                navigation
+                loop
+                spaceBetween={30}
+                breakpoints={{
+                  320: { slidesPerView: 1.5 },
+                  480: { slidesPerView: 1 },
+                  640: { slidesPerView: 1 },
+                  768: { slidesPerView: 3 },
+                  1024: { slidesPerView: 4 },
+                  1280: { slidesPerView: 5 },
+                }}
+                className="product-carousel"
+              >
+                {products.data.map((product) => (
+                  <SwiperSlide key={product.id}>
+                    <div className="h-full mb-5 ">
+                      <ProductItem product={product} />
+                    </div>
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            </div>
+          )}
+        </main>
+
+        <section className="text-gray-600 body-font">
+          <div className="container px-5 py-24 mx-auto">
+            <div className="flex flex-wrap -mx-4 -my-8">
+              {[1, 2, 3].map((item, i) => (
+                <div
+                  key={i}
+                  className="py-8 px-4 lg:w-1/3 opacity-0 animate-fadeUp delay-[100ms]"
+                  style={{ animationDelay: `${i * 200}ms` }}
+                >
+                  <div className="h-full flex items-start hover:scale-[1.02] transition-transform duration-300 ease-in-out">
+                    <div className="w-12 flex-shrink-0 flex flex-col text-center leading-none">
+                      <span className="text-gray-500 pb-2 mb-2 border-b-2 border-gray-200">
+                        Jul
+                      </span>
+                      <span className="font-medium text-lg text-gray-800 title-font leading-none">
+                        18
+                      </span>
+                    </div>
+                    <div className="flex-grow pl-6">
+                      <h2 className="tracking-widest text-xs title-font font-medium text-indigo-500 mb-1">
+                        CATEGORY
+                      </h2>
+                      <h1 className="title-font text-xl font-medium text-gray-900 mb-3">
+                        {["The 400 Blows", "Shooting Stars", "Neptune"][i]}
+                      </h1>
+                      <p className="leading-relaxed mb-5">
+                        Photo booth fam kinfolk cold-pressed sriracha leggings
+                        jianbing microdosing tousled waistcoat.
+                      </p>
+                      <a className="inline-flex items-center cursor-pointer hover:opacity-80 transition-opacity">
+                        <img
+                          alt="blog"
+                          src={`https://dummyimage.com/10${3 - i}x10${3 - i}`}
+                          className="w-8 h-8 rounded-full flex-shrink-0 object-cover object-center"
+                        />
+                        <span className="flex-grow flex flex-col pl-3">
+                          <span className="title-font font-medium text-gray-900">
+                            {
+                              [
+                                "Alper Kamu",
+                                "Holden Caulfield",
+                                "Henry Letham",
+                              ][i]
+                            }
+                          </span>
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-      ))}
-    </div>
-  </div>
-</section>
-
-
-
-
-
+        </section>
 
         {/* Other sections like Product List, Vendors, Testimonials, etc. */}
       </AuthenticatedLayout>

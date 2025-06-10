@@ -37,6 +37,17 @@ class CategoriesRelationManager extends RelationManager
                     ->label('Parent Category')
                     ->preload()
                     ->searchable(),
+
+Forms\Components\FileUpload::make('image')
+                ->label('Category Image')
+                ->image()
+                ->directory('category-images') // stored in `storage/app/public/category-images`
+                ->visibility('public') // make accessible via public disk
+                ->imagePreviewHeight('100')
+                ->downloadable()
+                ->openable(),
+
+
                     Checkbox::make('active')
             ]);
     }
@@ -52,10 +63,17 @@ class CategoriesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('parent.name')
                 ->sortable()
                 ->searchable(),
-                IconColumn::make('active')
-                ->boolean()
-                ->label('Active')
-            ])
+    IconColumn::make('active')
+    ->boolean()
+    ->label('Active'),
+
+    Tables\Columns\ImageColumn::make('image')
+        ->label('Image')
+        ->disk('public')
+        ->height(60)
+        ->width(60),
+
+])
             ->filters([
                 //
             ])

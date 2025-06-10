@@ -5,8 +5,6 @@ import ProductItem from "@/Components/App/ProductItem";
 import { PageProps, PaginationProps, Product, Department } from "@/types";
 import { PlusCircle, MinusCircle } from "lucide-react";
 
-
-
 type Props = PageProps<{
   products: PaginationProps<Product>;
   departments: Department[];
@@ -21,7 +19,12 @@ type Props = PageProps<{
 
 const DEFAULT_MAX_PRICE = 1000;
 
-export default function Index({ department,products, departments, filters }: Props) {
+export default function Index({
+  department,
+  products,
+  departments,
+  filters,
+}: Props) {
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(
     filters.department_id
   );
@@ -33,6 +36,7 @@ export default function Index({ department,products, departments, filters }: Pro
   );
   const [sortBy, setSortBy] = useState<string>(filters.sort_by || "default");
   const [expandedDepartments, setExpandedDepartments] = useState<string[]>([]);
+  const [showFilterModal, setShowFilterModal] = useState(false);
 
   const toggleDepartment = (id: string) => {
     setExpandedDepartments((prev) =>
@@ -41,10 +45,14 @@ export default function Index({ department,products, departments, filters }: Pro
   };
 
   const handleApplyFilters = () => {
-    const selectedDepartmentSlug =
-      departments.find((d) => d.id.toString() === selectedDepartment)?.slug;
+    const selectedDepartmentSlug = departments.find(
+      (d) => d.id.toString() === selectedDepartment?.toString()
+    )?.slug;
 
-    if (!selectedDepartmentSlug) return;
+    if (!selectedDepartmentSlug) {
+      console.error("No slug found for selected department");
+      return;
+    }
 
     router.get(
       route("product.byDepartment", selectedDepartmentSlug),
@@ -62,24 +70,18 @@ export default function Index({ department,products, departments, filters }: Pro
   };
 
   const handleResetFilters = () => {
-    if (!selectedDepartment) return;
-
-    const departmentSlug = departments.find(
-      (d) => d.id.toString() === selectedDepartment
-    )?.slug;
-
-    if (!departmentSlug) return;
+    if (!department?.slug) return; // Safe check
 
     setSelectedCategory(null);
     setMaxPrice(DEFAULT_MAX_PRICE);
     setSortBy("default");
 
     router.get(
-      route("product.byDepartment", departmentSlug),
-      {},
+      route("product.byDepartment", department.slug),
+      {}, // no query params
       {
         preserveScroll: true,
-        preserveState: true,
+        preserveState: false, // force state refresh
       }
     );
   };
@@ -92,12 +94,16 @@ export default function Index({ department,products, departments, filters }: Pro
     setSortBy("default");
 
     // Fetch all products with no filters
-    router.get(route("shop.search"), {}, {
-      preserveState: true,
-      preserveScroll: true,
-    });
+    router.get(
+      route("shop.search"),
+      {},
+      {
+        preserveState: true,
+        preserveScroll: true,
+      }
+    );
   };
-
+  console.log("department", department);
   return (
     <AuthenticatedLayout>
       <Head title="Product List" />
@@ -110,7 +116,9 @@ export default function Index({ department,products, departments, filters }: Pro
 
       <div className="flex flex-col lg:flex-row gap-6 p-6">
         {/* Filters */}
-        <aside className="w-full lg:w-1/4 bg-white shadow rounded p-4">
+        <aside className="hidden lg:block lg:w-1/4 bg-white shadow rounded p-4 h-auto sticky top-4 self-start">
+
+
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Filters</h2>
             <button
@@ -124,69 +132,34 @@ export default function Index({ department,products, departments, filters }: Pro
 
           {/* Department Filter */}
           <div className="mb-6">
-            <h3 className="text-sm font-medium mb-2">Departments & Categories</h3>
-            <ul className="text-sm space-y-1">
-              {departments.map((department) => {
-                const isExpanded = expandedDepartments.includes(
-                  department.id.toString()
-                );
+            <h3 className="text-sm font-medium mb-2">Categories</h3>
 
-                return (
-                  <li key={department.id}>
-                    <div className="flex justify-between items-center">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedDepartment(department.id.toString());
-                          setSelectedCategory(null);
-                          toggleDepartment(department.id.toString());
-                        }}
-                        className="font-semibold text-left w-full"
-                      >
-                        {department.name}
-                      </button>
-                      <button
-                        type="button"
-                        className="ml-2"
-                        onClick={() => toggleDepartment(department.id.toString())}
-                        aria-label={isExpanded ? "Collapse" : "Expand"}
-                      >
-                        {isExpanded ? (
-                          <MinusCircle size={20} className="text-gray-600" />
-                        ) : (
-                          <PlusCircle size={20} className="text-gray-600" />
-                        )}
-                      </button>
-                    </div>
+            {department ? (
+              <div>
+                <div className="font-semibold mb-2">{department.name}</div>
 
-                    {isExpanded && (
-                      <ul className="ml-4 mt-1 space-y-1">
-                        {department.categories.map((category) => (
-                          <li key={category.id}>
-                            <label className="inline-flex items-center space-x-2 cursor-pointer">
-                              <input
-                                type="radio"
-                                name="category"
-                                value={category.id}
-                                checked={
-                                  selectedCategory === category.id.toString() &&
-                                  selectedDepartment === department.id.toString()
-                                }
-                                onChange={() => {
-                                  setSelectedDepartment(department.id.toString());
-                                  setSelectedCategory(category.id.toString());
-                                }}
-                              />
-                              <span>{category.name}</span>
-                            </label>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+                <ul className="text-sm space-y-1">
+                  {department?.categories?.map((category) => (
+                    <li key={category.id}>
+                      <label className="inline-flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="category"
+                          value={category.id}
+                          checked={selectedCategory === category.id.toString()}
+                          onChange={() =>
+                            setSelectedCategory(category.id.toString())
+                          }
+                        />
+                        <span>{category.name}</span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p>Please select a department to see categories.</p>
+            )}
           </div>
 
           {/* Price Range Filter */}
@@ -236,19 +209,135 @@ export default function Index({ department,products, departments, filters }: Pro
           </div>
         </aside>
 
-    {/* Product List */}
-                 <main className="w-full lg:w-full mr-10">
-                   {products.data.length === 0 ? (
-                     <div className="text-center py-20 text-gray-500">
-                       No products found.
-                     </div>
-                   ) : (
-                     <div className="grid grid-cols-1  sm:grid-cols-1 lg:grid-cols-3 gap-3">
-                       {products.data.map((product) => (
-                         <ProductItem key={product.id} product={product} />
-                       ))}
-                     </div>
-                   )}
+        {/* Mobile filter toggle button */}
+        <div className="lg:hidden p-4">
+          <button
+            className="bg-blue-600 text-white px-4 py-2 rounded"
+            onClick={() => setShowFilterModal(true)}
+          >
+            Open Filters
+          </button>
+        </div>
+        {showFilterModal && (
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex justify-center items-center"
+            onClick={() => setShowFilterModal(false)} // click on backdrop
+          >
+            {/* Prevent click inside modal from closing */}
+            <div
+              className="bg-white rounded-lg shadow-lg w-11/12 max-w-md p-6 relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xl"
+                onClick={() => setShowFilterModal(false)}
+              >
+                &times;
+              </button>
+
+              {/* Your Filters Go Here */}
+              <h2 className="text-lg font-semibold mb-4">Filters</h2>
+
+              {/* Categories */}
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Categories</h3>
+                  <ul className="text-sm space-y-1">
+                    {department?.categories?.map((category) => (
+                      <li key={category.id}>
+                        <label className="inline-flex items-center space-x-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="category"
+                            value={category.id.toString()}
+                            checked={
+                              selectedCategory === category.id.toString()
+                            }
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              requestAnimationFrame(() => {
+                                setSelectedCategory(value);
+                              });
+                            }}
+                          />
+
+                          <span>{category.name}</span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Price */}
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Price Range</h3>
+                  <input
+                    type="range"
+                    min={0}
+                    max={6000}
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(Number(e.target.value))}
+                    className="w-full"
+                  />
+                  <p className="text-sm text-gray-600 mt-1">
+                    Up to ${maxPrice}
+                  </p>
+                </div>
+
+                {/* Sort */}
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Sort By</h3>
+                  <select
+                    className="w-full border border-gray-300 rounded p-1 text-sm"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                  >
+                    <option value="default">Default</option>
+                    <option value="price_asc">Price: Low to High</option>
+                    <option value="price_desc">Price: High to Low</option>
+                    <option value="newest">Newest</option>
+                  </select>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-2 mt-4">
+                  <button
+                    className="w-full bg-blue-600 text-white py-2 rounded"
+                    onClick={() => {
+                      handleApplyFilters();
+                      setShowFilterModal(false);
+                    }}
+                  >
+                    Apply
+                  </button>
+                  <button
+                    className="w-full bg-gray-300 text-gray-800 py-2 rounded"
+                    onClick={() => {
+                      handleResetFilters();
+                      setShowFilterModal(false);
+                    }}
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Product List */}
+        <main className="w-full lg:w-full ">
+          {products.data.length === 0 ? (
+            <div className="text-center py-20 text-gray-500">
+              No products found.
+            </div>
+          ) : (
+            <div className=" grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 xs:mr-5">
+              {products.data.map((product) => (
+                <ProductItem key={product.id} product={product} />
+              ))}
+            </div>
+          )}
 
           {/* Pagination */}
           <div className="mt-6 flex justify-center space-x-2">

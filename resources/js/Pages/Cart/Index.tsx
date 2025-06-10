@@ -1,4 +1,4 @@
-import BookingWidget from "@/Pages/Booking/Booking";
+import BookingWidget from "@/Pages/Booking/BookingWidget";
 import CartItem from "@/Components/App/CartItem";
 import ShippingAddressSelector from "@/Components/App/ShippingAddressSelector";
 import PrimaryButton from "@/Components/Core/PrimaryButton";
@@ -16,6 +16,7 @@ function Index({
   totalQuantity,
   totalPrice,
   shippingAddresses,
+  vendorId,
   bookings,
   showBookingWidget,
   showShippingForm,
@@ -25,10 +26,13 @@ function Index({
   bookings: Booking[];
   showBookingWidget: boolean;
   showShippingForm: boolean;
+  vendorId: number[];
 }>) {
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     shippingAddresses.find((a) => a.is_default)?.id ?? null
   );
+
+
 
   const [bookingDate, setBookingDate] = useState("");
   const [timeSlot, setTimeSlot] = useState("");
@@ -59,6 +63,7 @@ function Index({
           hasBooking: showBookingWidget ? "1" : "0",
           hasShipping: showShippingForm ? "1" : "0",
           time_slot: timeSlot,
+          vendor_user_id: vendorId, // <-- Include this
         },
         preserveState: true,
         preserveScroll: true,
@@ -88,6 +93,18 @@ function Index({
       alert("Failed to submit booking. Please try again.");
     }
   };
+
+
+console.log('bookingDate:', bookingDate);
+  console.log('timeSlot:', timeSlot);
+  console.log('selectedAddressId:', selectedAddressId);
+
+  console.log('vendorId:', vendorId);
+
+  console.log('cartItems:', cartItems);
+  console.log('totalQuantity:', totalQuantity);
+  console.log('totalPrice:', totalPrice);
+
 
   return (
     <AuthenticatedLayout>
@@ -136,13 +153,19 @@ function Index({
                   Book Appointment
                 </button>
                 <BookingWidget
-                  bookingDate={bookingDate}
-                  setBookingDate={setBookingDate}
-                  timeSlot={timeSlot}
-                  setTimeSlot={setTimeSlot}
-                  open={dialogOpen}
-                  onOpenChange={setDialogOpen}
-                />
+  bookingDate={bookingDate}
+  setBookingDate={setBookingDate}
+  timeSlot={timeSlot}
+  setTimeSlot={setTimeSlot}
+  open={dialogOpen}
+  onOpenChange={setDialogOpen}
+  vendorId={vendorId.length > 0 ? vendorId[0] : null}
+  onSubmit={(date, slot) => {
+    console.log("Booking Submitted:", date, slot);
+    setBookingDate(date);
+    setTimeSlot(slot);
+  }}
+/>
 
                 {bookingDate && timeSlot && (
                   <div className="text-sm text-gray-700 dark:text-gray-300">

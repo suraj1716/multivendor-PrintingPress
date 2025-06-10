@@ -19,7 +19,7 @@ export default function OrdersHistory() {
   ) : (
     orders.data.map((order) =>
       order.vendor.vendor_type === "ecommerce" && (
-        <div key={order.id} className="bg-white shadow rounded-md mb-6 p-4">
+        <div key={order.id} className="bg-white shadow rounded-md mb-6 p-4 overflow-x-auto">
           {/* Order header */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 border-b border-gray-200 pb-1 text-sm text-gray-700">
             <div>
@@ -37,7 +37,7 @@ export default function OrdersHistory() {
           {/* Vendor Info */}
           <div className="mb-3 text-sm text-gray-600">
             <div>
-              <span className="font-semibold">Vendor:</span> {order.vendor.name}
+              <span className="font-semibold">Vendor:</span> {order.vendor.store_name}
             </div>
             <div>
               <span className="font-semibold">Store:</span> {order.vendor.store_name}

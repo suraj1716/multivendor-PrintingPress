@@ -4,7 +4,7 @@ namespace App\Enums;
 
 enum ProductVariationTypeEnum: string
 {
-    case  Select='Select';
+    case Select='Select';
     case Radio='Radio';
     case Image='Image';
 
